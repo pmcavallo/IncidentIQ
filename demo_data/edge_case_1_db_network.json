@@ -1,0 +1,81 @@
+{
+  "incident_id": "EDGE_1_2824",
+  "metrics": {
+    "cpu_usage": 32.5,
+    "memory_usage": 55.8,
+    "disk_io_ops": 285.4,
+    "network_latency_ms": 145.7,
+    "response_time_ms": 850.3,
+    "error_rate": 0.12,
+    "connection_pool_usage": 89.2,
+    "throughput_rps": 450.1,
+    "packet_loss_percent": 2.3,
+    "db_query_time_ms": 45.2
+  },
+  "context": {
+    "timestamp": "2025-10-12T12:20:59.227249",
+    "business_event": "normal_operations",
+    "recent_deployments": [
+      "user-service-v2.1.3"
+    ],
+    "traffic_multiplier": 1.1,
+    "geographic_distribution": {
+      "us-east": 0.4,
+      "us-west": 0.35,
+      "eu": 0.25
+    },
+    "feature_flags": [
+      "enhanced_caching_v2"
+    ],
+    "historical_incidents": [
+      {
+        "incident_id": "HIST_NET_001",
+        "date": "2024-08-15",
+        "root_cause": "network_switch_failure",
+        "symptoms": [
+          "high_connection_pool",
+          "elevated_response_time"
+        ],
+        "resolution": "replaced_faulty_network_switch"
+      },
+      {
+        "incident_id": "HIST_NET_002",
+        "date": "2024-09-22",
+        "root_cause": "network_congestion",
+        "symptoms": [
+          "packet_loss",
+          "db_connection_timeouts"
+        ],
+        "resolution": "traffic_rerouting"
+      }
+    ]
+  },
+  "predictions": {
+    "incident_type": "network_latency",
+    "severity": "high",
+    "root_cause": "network_infrastructure_degradation",
+    "confidence": 0.75,
+    "recommended_actions": [
+      "check_network_switch_health",
+      "analyze_packet_loss_patterns",
+      "verify_network_routing_tables",
+      "investigate_isp_connectivity"
+    ],
+    "is_edge_case": true,
+    "edge_case_type": "misleading_db_symptoms"
+  },
+  "ground_truth": {
+    "actual_root_cause": "network_switch_intermittent_failure",
+    "misleading_symptoms": [
+      "high_connection_pool_usage",
+      "elevated_db_response_time"
+    ],
+    "correct_indicators": [
+      "packet_loss",
+      "network_latency",
+      "normal_db_internals"
+    ],
+    "resolution_time_minutes": 45,
+    "business_impact": "moderate"
+  }
+}
