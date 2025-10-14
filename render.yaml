@@ -1,0 +1,11 @@
+# Render Blueprint Configuration for IncidentIQ
+services:
+  - type: web
+    name: incidentiq-streamlit
+    runtime: python3
+    buildCommand: pip install --upgrade pip && pip install -r requirements.txt
+    startCommand: streamlit run demo/streamlit_app.py --server.port $PORT --server.address 0.0.0.0 --server.headless true
+    plan: starter
+    envVars:
+      - key: ANTHROPIC_API_KEY
+        sync: false
