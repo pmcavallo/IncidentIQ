@@ -1,0 +1,57 @@
+{
+  "incident_id": "DEMO_CONTROL_OBVIOUS_INCIDENT",
+  "description": "Obvious Database Failure - Control Case (No Agent Needed)",
+  "scenario": "ML model correctly identifies clear incident with high confidence. Standard remediation sufficient.",
+
+  "metrics": {
+    "cpu_usage": 95.0,
+    "memory_usage": 92.0,
+    "disk_io_ops": 8500.0,
+    "network_latency_ms": 450.0,
+    "response_time_ms": 3200.0,
+    "error_rate": 0.45,
+    "connection_pool_usage": 98.0,
+    "throughput_rps": 120.0,
+    "packet_loss_percent": 2.5,
+    "db_query_time_ms": 2800.0
+  },
+
+  "context": {
+    "timestamp": "2024-10-15T14:30:00",
+    "business_event": "normal_operations",
+    "recent_deployments": [],
+    "traffic_multiplier": 1.0,
+    "geographic_distribution": {
+      "us-east": 0.4,
+      "us-west": 0.35,
+      "eu": 0.25
+    },
+    "feature_flags": [],
+    "historical_incidents": []
+  },
+
+  "ground_truth": {
+    "actual_label": "incident",
+    "actual_root_cause": "database_connection_pool_exhaustion",
+
+    "why_edge_case": "NOT an edge case - this is a control showing obvious incident that doesn't need agent investigation",
+
+    "ml_model_view": {
+      "prediction": "incident",
+      "confidence": 0.98,
+      "reasoning": "Critical severity across all metrics: CPU 95%, Memory 92%, Response time 3200ms (16x baseline), Error rate 45%, DB query time 2800ms, Connection pool 98%. Clear database performance incident.",
+      "would_do": "CRITICAL: Database incident detected. Execute standard remediation: Scale database read replicas, increase connection pool size, implement circuit breakers. Alert on-call DBA team."
+    },
+
+    "agent_investigation": {
+      "finding": "NOT TRIGGERED",
+      "confidence": null,
+      "root_cause": "Agent investigation not needed - ML model highly confident and correct",
+      "key_insights": [],
+      "recommendation": "Standard ML-driven remediation is appropriate. High confidence (98%), clear incident pattern, established playbook exists.",
+      "outcome": "Efficient response - no agent overhead needed. Standard database scaling and connection pool increase resolved issue in 8 minutes."
+    },
+
+    "hybrid_system_value": "System correctly skips expensive agent investigation when ML model is confident and correct. Demonstrates efficiency of hybrid approach - agents only for edge cases."
+  }
+}

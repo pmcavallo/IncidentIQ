@@ -1,0 +1,76 @@
+{
+  "incident_id": "DEMO_FN_MEMORY_LEAK",
+  "description": "Gradual Memory Leak - False Negative Demo",
+  "scenario": "ML model sees currently normal metrics and predicts normal, but agents detect progressive memory leak trend",
+
+  "metrics": {
+    "cpu_usage": 32.0,
+    "memory_usage": 68.0,
+    "disk_io_ops": 250.0,
+    "network_latency_ms": 12.0,
+    "response_time_ms": 195.0,
+    "error_rate": 0.03,
+    "connection_pool_usage": 38.0,
+    "throughput_rps": 950.0,
+    "packet_loss_percent": 0.006,
+    "db_query_time_ms": 42.0
+  },
+
+  "context": {
+    "timestamp": "2024-10-15T10:00:00",
+    "business_event": "normal_operations",
+    "recent_deployments": ["user-profile-service-v2.4.1"],
+    "traffic_multiplier": 1.05,
+    "geographic_distribution": {
+      "us-east": 0.4,
+      "us-west": 0.35,
+      "eu": 0.25
+    },
+    "feature_flags": ["enhanced_caching_v3"],
+    "historical_incidents": [{
+      "incident_id": "HIST_ML_001",
+      "symptom": "gradual_memory_increase",
+      "resolution": "cache_ttl_fix"
+    }]
+  },
+
+  "ground_truth": {
+    "actual_label": "incident",
+    "actual_root_cause": "progressive_memory_leak_from_cache_ttl_misconfiguration",
+
+    "why_edge_case": "All current metrics appear normal (CPU 32%, Memory 68%, Response 195ms). ML model trained on point-in-time snapshots cannot detect gradual trends. Requires temporal analysis.",
+
+    "ml_model_view": {
+      "prediction": "normal",
+      "confidence": 0.71,
+      "reasoning": "All metrics within normal ranges: CPU 32%, Memory 68%, Response time 195ms, Error rate 3%. No anomalies detected in current snapshot.",
+      "would_do": "No action. Continue standard monitoring. Metrics appear healthy."
+    },
+
+    "agent_investigation": {
+      "finding": "incident",
+      "confidence": 0.92,
+      "root_cause": "Progressive memory leak - Cache TTL misconfiguration in v2.4.1",
+      "key_insights": [
+        "Memory was 45% at deployment (6 hours ago), now 68% - growing 3.5% per hour",
+        "Trend analysis: Will reach 95% critical threshold in 2 hours",
+        "Deployment timing matches: user-profile-service-v2.4.1 deployed 6h ago",
+        "Historical pattern match: Previous cache TTL issue (HIST_ML_001) had identical progression",
+        "Enhanced_caching_v3 feature flag likely culprit - cache entries not expiring"
+      ],
+      "recommendation": "OVERRIDE ML MODEL: IMMEDIATE ACTION REQUIRED. Rollback user-profile-service-v2.4.1. Root cause: Cache TTL misconfiguration preventing memory release. If rollback not possible, restart service to clear cache.",
+      "human_review_required": true,
+      "override_ml": true,
+      "escalation_reason": "ML model predicted normal with 71% confidence, but agent trend analysis (92% confidence) detects progressive memory leak. System will reach critical failure in 2 hours if not addressed. Recommend overriding ML to prevent production outage.",
+      "roi_estimate": {
+        "cost_avoided": "$250,000",
+        "time_saved": "2 hours early detection",
+        "calculation": "Production outage cost estimate: $125K/hour revenue loss (10K users × $12.50 avg transaction) × 2 hours = $250K. Early detection allows proactive rollback vs reactive firefighting. Time saved: Caught issue 2 hours before critical threshold, preventing emergency response.",
+        "confidence": "Medium-High - based on historical incident HIST_ML_001 (identical cache TTL issue) which caused 3-hour outage costing $375K"
+      },
+      "outcome": "Prevented production outage. Caught issue 2 hours before critical memory threshold. Zero downtime resolution via rollback."
+    },
+
+    "hybrid_system_value": "Agents performed temporal trend analysis that point-in-time ML model cannot. Detected 3.5%/hour growth rate and projected critical threshold breach. Early intervention prevented customer-facing outage."
+  }
+}

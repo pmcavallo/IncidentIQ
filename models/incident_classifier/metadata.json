@@ -1,13 +1,9 @@
 {
   "incident_classes": [
-    "database_performance",
-    "memory_leak",
-    "network_latency",
-    "disk_io",
-    "cpu_spike",
-    "unknown"
+    "normal",
+    "incident"
   ],
   "confidence_threshold": 0.75,
   "num_features": 15,
-  "model_type": "lightgbm_multiclass"
+  "model_type": "lightgbm_binary"
 }

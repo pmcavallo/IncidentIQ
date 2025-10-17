@@ -1,4 +1,8 @@
-"""Synthetic incident data generation module."""
+"""Synthetic incident data generation for binary classification.
+
+Generates training data with binary labels ('normal', 'incident') and
+5 edge cases demonstrating agent value.
+"""
 
 import json
 import random
@@ -59,22 +63,22 @@ class SyntheticIncident:
 
 
 class SyntheticIncidentGenerator:
-    """Generator for realistic incident data with specific edge cases."""
+    """Generator for realistic incident data with binary classification."""
 
     def __init__(self, seed: int = 42):
         """Initialize the generator with a random seed."""
         random.seed(seed)
         np.random.seed(seed)
 
-        self.incident_types = [
-            "database_performance",
-            "network_latency",
+        # Specific root causes (for agent investigation)
+        self.incident_root_causes = [
+            "database_performance_degradation",
+            "network_infrastructure_issue",
             "memory_leak",
-            "cpu_spike",
-            "disk_io"
+            "cpu_intensive_process",
+            "disk_io_bottleneck",
+            "connection_pool_exhaustion"
         ]
-
-        self.severities = ["low", "medium", "high", "critical"]
 
     def _generate_timestamp(self, days_back: int = 0, hours_back: int = 0) -> str:
         """Generate a realistic timestamp."""
@@ -97,116 +101,37 @@ class SyntheticIncidentGenerator:
             db_query_time_ms=random.uniform(10, 50)
         )
 
-    def generate_edge_case_1_db_actually_network(self) -> SyntheticIncident:
+    # ========================================================================
+    # EDGE CASE 1: FALSE POSITIVE - Black Friday Normal Traffic
+    # ========================================================================
+    def generate_edge_case_1_false_positive_black_friday(self) -> SyntheticIncident:
+        """Edge Case 1: FALSE POSITIVE - Black Friday normal traffic.
+
+        Model: 'incident' (95% confidence) - thinks system degradation
+        Reality: Normal Black Friday traffic (12x baseline)
+        Agent value: Prevent unnecessary scaling ($47K cost)
         """
-        Edge case 1: Database symptoms but network is root cause (misleading).
+        incident_id = f"EDGE_1_FP_BF_{random.randint(1000, 9999)}"
 
-        DB metrics appear degraded but DB internals are healthy.
-        Network metrics show the real problem.
-        """
-        incident_id = f"EDGE_1_{random.randint(1000, 9999)}"
-
-        # Misleading DB metrics (appear bad)
-        metrics = IncidentMetrics(
-            cpu_usage=32.5,  # Normal DB CPU
-            memory_usage=55.8,  # Normal DB memory
-            disk_io_ops=285.4,  # Normal DB disk I/O
-            network_latency_ms=145.7,  # HIGH - real problem
-            response_time_ms=850.3,  # HIGH due to network
-            error_rate=0.12,  # Elevated due to timeouts
-            connection_pool_usage=89.2,  # HIGH - appears like DB issue
-            throughput_rps=450.1,  # Low due to network issues
-            packet_loss_percent=2.3,  # HIGH - smoking gun
-            db_query_time_ms=45.2  # Normal internal DB performance
-        )
-
-        # Historical context with similar incidents
-        historical_incidents = [
-            {
-                "incident_id": "HIST_NET_001",
-                "date": "2024-08-15",
-                "root_cause": "network_switch_failure",
-                "symptoms": ["high_connection_pool", "elevated_response_time"],
-                "resolution": "replaced_faulty_network_switch"
-            },
-            {
-                "incident_id": "HIST_NET_002",
-                "date": "2024-09-22",
-                "root_cause": "network_congestion",
-                "symptoms": ["packet_loss", "db_connection_timeouts"],
-                "resolution": "traffic_rerouting"
-            }
-        ]
-
-        context = IncidentContext(
-            timestamp=self._generate_timestamp(hours_back=2),
-            business_event="normal_operations",
-            recent_deployments=["user-service-v2.1.3"],
-            traffic_multiplier=1.1,
-            geographic_distribution={"us-east": 0.4, "us-west": 0.35, "eu": 0.25},
-            feature_flags=["enhanced_caching_v2"],
-            historical_incidents=historical_incidents
-        )
-
-        predictions = IncidentPredictions(
-            incident_type="network_latency",  # Correct classification
-            severity="high",
-            root_cause="network_infrastructure_degradation",
-            confidence=0.75,  # Lower confidence due to misleading symptoms
-            recommended_actions=[
-                "check_network_switch_health",
-                "analyze_packet_loss_patterns",
-                "verify_network_routing_tables",
-                "investigate_isp_connectivity"
-            ],
-            is_edge_case=True,
-            edge_case_type="misleading_db_symptoms"
-        )
-
-        ground_truth = {
-            "actual_root_cause": "network_switch_intermittent_failure",
-            "misleading_symptoms": ["high_connection_pool_usage", "elevated_db_response_time"],
-            "correct_indicators": ["packet_loss", "network_latency", "normal_db_internals"],
-            "resolution_time_minutes": 45,
-            "business_impact": "moderate"
-        }
-
-        return SyntheticIncident(
-            incident_id=incident_id,
-            metrics=metrics,
-            context=context,
-            predictions=predictions,
-            ground_truth=ground_truth
-        )
-
-    def generate_edge_case_2_false_positive_black_friday(self) -> SyntheticIncident:
-        """
-        Edge case 2: Black Friday false positive (high load is expected).
-
-        Metrics breach thresholds but it's expected high traffic.
-        """
-        incident_id = f"EDGE_2_{random.randint(1000, 9999)}"
-
-        # Elevated but expected metrics
+        # High metrics but expected for Black Friday
         metrics = IncidentMetrics(
             cpu_usage=78.5,  # High but expected
             memory_usage=82.1,  # High but expected
             disk_io_ops=2850.7,  # High but expected
             network_latency_ms=12.3,  # Normal
-            response_time_ms=520.4,  # Slightly above 500ms threshold
+            response_time_ms=520.4,  # Slightly above threshold
             error_rate=0.04,  # Normal despite high load
-            connection_pool_usage=85.6,  # High but handling load well
+            connection_pool_usage=85.6,  # High but handling well
             throughput_rps=9800.2,  # 12x normal traffic
             packet_loss_percent=0.008,  # Normal
             db_query_time_ms=65.8  # Slightly elevated but acceptable
         )
 
-        # Black Friday context
         context = IncidentContext(
             timestamp="2024-11-29T14:30:00",  # Black Friday afternoon
             business_event="black_friday_peak_shopping",
             recent_deployments=["checkout-service-v3.2.1", "inventory-service-v1.8.0"],
-            traffic_multiplier=12.3,  # Expected 12x traffic
+            traffic_multiplier=12.3,
             geographic_distribution={"us-east": 0.45, "us-west": 0.4, "eu": 0.15},
             feature_flags=["black_friday_optimizations", "enhanced_checkout_flow"],
             historical_incidents=[
@@ -215,38 +140,34 @@ class SyntheticIncidentGenerator:
                     "response_times": [480, 495, 510, 525, 530, 518, 502],
                     "traffic_multiplier": 11.8,
                     "incident_count": 0
-                },
-                {
-                    "event": "black_friday_2022",
-                    "response_times": [465, 489, 503, 528, 535, 521, 498],
-                    "traffic_multiplier": 9.2,
-                    "incident_count": 1
                 }
             ]
         )
 
         predictions = IncidentPredictions(
-            incident_type="expected_high_load",  # Should classify as non-incident
-            severity="low",  # Should be low despite threshold breach
-            root_cause="seasonal_traffic_spike",
-            confidence=0.92,  # High confidence it's expected
+            incident_type="normal",  # What agents determine
+            severity="none",
+            root_cause="expected_black_friday_traffic",
+            confidence=0.92,
             recommended_actions=[
-                "monitor_error_rates_closely",
+                "continue_monitoring",
                 "verify_auto_scaling_active",
-                "prepare_additional_capacity_if_needed",
-                "confirm_business_event_correlation"
+                "no_intervention_required"
             ],
             is_edge_case=True,
-            edge_case_type="false_positive_expected_load"
+            edge_case_type="false_positive_expected_event"
         )
 
         ground_truth = {
-            "is_actual_incident": False,
-            "business_context": "black_friday_shopping_event",
-            "threshold_breach_reason": "expected_seasonal_traffic",
-            "system_health": "performing_within_expected_parameters",
-            "historical_comparison": "response_times_consistent_with_previous_years",
-            "action_taken": "continued_monitoring_no_intervention"
+            "actual_label": "normal",  # Binary label
+            "actual_root_cause": "expected_black_friday_traffic",
+            "why_tricky": "Metrics exceed typical thresholds, but within expected range for Black Friday",
+            "model_prediction": "incident",  # What model would predict
+            "model_confidence": 0.95,
+            "model_would_do": "Scale infrastructure immediately (cost: $47K)",
+            "agent_finding": "Normal Black Friday traffic pattern, metrics consistent with historical data",
+            "agent_recommendation": "Continue monitoring, no intervention needed",
+            "outcome": "Prevented $47K unnecessary cloud scaling costs"
         }
 
         return SyntheticIncident(
@@ -257,22 +178,182 @@ class SyntheticIncidentGenerator:
             ground_truth=ground_truth
         )
 
-    def generate_edge_case_3_novel_feature_flag(self) -> SyntheticIncident:
-        """
-        Edge case 3: Novel pattern from feature flag deployment.
+    # ========================================================================
+    # EDGE CASE 2: FALSE NEGATIVE - Gradual Memory Leak
+    # ========================================================================
+    def generate_edge_case_2_false_negative_memory_leak(self) -> SyntheticIncident:
+        """Edge Case 2: FALSE NEGATIVE - Gradual memory leak missed.
 
-        Geographic clustering with feature flag correlation.
+        Model: 'normal' (88% confidence) - current metrics look fine
+        Reality: Progressive memory leak that will cause failure in 2 hours
+        Agent value: Catch early warning signs before outage
         """
-        incident_id = f"EDGE_3_{random.randint(1000, 9999)}"
+        incident_id = f"EDGE_2_FN_ML_{random.randint(1000, 9999)}"
 
-        # Geographically clustered problem
+        # Metrics currently normal but trending dangerously
+        metrics = IncidentMetrics(
+            cpu_usage=28.5,  # Normal
+            memory_usage=67.2,  # Creeping up (was 45% 2hr ago)
+            disk_io_ops=220.4,  # Normal
+            network_latency_ms=9.5,  # Normal
+            response_time_ms=185.3,  # Normal
+            error_rate=0.03,  # Normal
+            connection_pool_usage=35.7,  # Normal
+            throughput_rps=950.2,  # Normal
+            packet_loss_percent=0.005,  # Normal
+            db_query_time_ms=38.1  # Normal
+        )
+
+        context = IncidentContext(
+            timestamp=self._generate_timestamp(hours_back=4),
+            business_event="normal_operations",
+            recent_deployments=["user-profile-service-v2.4.1"],  # 6 hours ago
+            traffic_multiplier=1.05,
+            geographic_distribution={"us-east": 0.4, "us-west": 0.35, "eu": 0.25},
+            feature_flags=["enhanced_caching_v3"],
+            historical_incidents=[
+                {
+                    "incident_id": "HIST_ML_001",
+                    "date": "2024-07-15",
+                    "symptom": "gradual_memory_increase",
+                    "resolution": "cache_ttl_configuration_fix"
+                }
+            ]
+        )
+
+        predictions = IncidentPredictions(
+            incident_type="incident",  # What agents determine
+            severity="high",
+            root_cause="cache_memory_leak_from_deployment",
+            confidence=0.82,
+            recommended_actions=[
+                "analyze_memory_growth_trend",
+                "review_cache_configuration",
+                "prepare_service_restart",
+                "rollback_if_pattern_continues"
+            ],
+            is_edge_case=True,
+            edge_case_type="false_negative_early_warning"
+        )
+
+        ground_truth = {
+            "actual_label": "incident",  # Binary label
+            "actual_root_cause": "cache_ttl_misconfiguration_causing_memory_leak",
+            "why_tricky": "Current metrics look normal, requires trend analysis to spot danger",
+            "model_prediction": "normal",  # What model would predict
+            "model_confidence": 0.88,
+            "model_would_do": "No action, metrics appear healthy",
+            "agent_finding": "Memory increasing 3.5% per hour since deployment, will hit 95% in 2 hours",
+            "agent_recommendation": "Immediate rollback of user-profile-service-v2.4.1",
+            "outcome": "Prevented production outage, caught issue 2 hours before critical threshold"
+        }
+
+        return SyntheticIncident(
+            incident_id=incident_id,
+            metrics=metrics,
+            context=context,
+            predictions=predictions,
+            ground_truth=ground_truth
+        )
+
+    # ========================================================================
+    # EDGE CASE 3: WRONG ROOT CAUSE - DB Symptoms, Network Cause
+    # ========================================================================
+    def generate_edge_case_3_wrong_root_cause_db_network(self) -> SyntheticIncident:
+        """Edge Case 3: WRONG ROOT CAUSE - Database symptoms, network cause.
+
+        Model: 'incident' (91% confidence) - correct label, wrong diagnosis
+        Reality: Network issue affecting DB connections, DB itself healthy
+        Agent value: Prevent wasted time on wrong fix
+        """
+        incident_id = f"EDGE_3_WC_DBN_{random.randint(1000, 9999)}"
+
+        # Misleading DB metrics (caused by network)
+        metrics = IncidentMetrics(
+            cpu_usage=32.5,  # Normal DB CPU
+            memory_usage=55.8,  # Normal DB memory
+            disk_io_ops=285.4,  # Normal DB disk
+            network_latency_ms=145.7,  # HIGH - smoking gun
+            response_time_ms=850.3,  # HIGH due to network
+            error_rate=0.12,  # Elevated due to timeouts
+            connection_pool_usage=89.2,  # HIGH - appears like DB issue
+            throughput_rps=450.1,  # Low due to network issues
+            packet_loss_percent=2.3,  # HIGH - real problem
+            db_query_time_ms=45.2  # Normal internal DB performance
+        )
+
+        context = IncidentContext(
+            timestamp=self._generate_timestamp(hours_back=2),
+            business_event="normal_operations",
+            recent_deployments=["database-config-update-v3.1.2"],
+            traffic_multiplier=1.1,
+            geographic_distribution={"us-east": 0.4, "us-west": 0.35, "eu": 0.25},
+            feature_flags=["enhanced_db_caching"],
+            historical_incidents=[
+                {
+                    "incident_id": "HIST_NET_001",
+                    "date": "2024-08-15",
+                    "symptoms": ["high_connection_pool", "elevated_response_time"],
+                    "actual_cause": "network_switch_failure"
+                }
+            ]
+        )
+
+        predictions = IncidentPredictions(
+            incident_type="incident",  # Correct label
+            severity="high",
+            root_cause="network_infrastructure_degradation",  # Correct cause
+            confidence=0.85,
+            recommended_actions=[
+                "check_network_switch_health",
+                "analyze_packet_loss_patterns",
+                "verify_network_routing",
+                "do_not_restart_database"
+            ],
+            is_edge_case=True,
+            edge_case_type="misleading_symptoms_wrong_root_cause"
+        )
+
+        ground_truth = {
+            "actual_label": "incident",  # Binary label (correct)
+            "actual_root_cause": "network_switch_intermittent_failure",
+            "why_tricky": "DB metrics misleading - high connection pool suggests DB issue, but network is culprit",
+            "model_prediction": "incident",  # Correct label
+            "model_confidence": 0.91,
+            "model_would_do": "Restart database, scale DB resources (45min downtime, $0 fix)",
+            "agent_finding": "DB internals healthy (45ms query time), network packet loss 2.3% is real problem",
+            "agent_recommendation": "Replace failing network switch, do NOT touch database",
+            "outcome": "Prevented 45min unnecessary DB restart, fixed in 15min by replacing switch"
+        }
+
+        return SyntheticIncident(
+            incident_id=incident_id,
+            metrics=metrics,
+            context=context,
+            predictions=predictions,
+            ground_truth=ground_truth
+        )
+
+    # ========================================================================
+    # EDGE CASE 4: NOVEL PATTERN - Feature Flag Interaction
+    # ========================================================================
+    def generate_edge_case_4_novel_pattern_feature_flag(self) -> SyntheticIncident:
+        """Edge Case 4: NOVEL PATTERN - Feature flag interaction.
+
+        Model: 'incident' (68% confidence) - low confidence, uncertain
+        Reality: Complex interaction between 2 feature flags causing memory leak in 2% of traffic
+        Agent value: Identify novel pattern through correlation analysis
+        """
+        incident_id = f"EDGE_4_NP_FF_{random.randint(1000, 9999)}"
+
+        # Subtle, unusual metric pattern
         metrics = IncidentMetrics(
             cpu_usage=45.2,  # Normal overall
             memory_usage=68.7,  # Slightly elevated
             disk_io_ops=520.1,  # Normal
             network_latency_ms=18.5,  # Slightly elevated
-            response_time_ms=1250.8,  # High in affected region
-            error_rate=0.31,  # High overall due to US-East
+            response_time_ms=1250.8,  # High in affected segment
+            error_rate=0.08,  # Moderate
             connection_pool_usage=55.4,  # Normal
             throughput_rps=850.3,  # Normal
             packet_loss_percent=0.015,  # Normal
@@ -285,53 +366,44 @@ class SyntheticIncidentGenerator:
             recent_deployments=["recommendation-engine-v4.1.0"],
             traffic_multiplier=1.05,
             geographic_distribution={
-                "us-east": 0.93,  # 93% of errors in US-East
+                "us-east": 0.93,  # 93% of errors concentrated here
                 "us-west": 0.04,
                 "eu": 0.02,
                 "asia": 0.01
             },
             feature_flags=[
                 "ml_recommendations_v4",  # Deployed 45 min ago
-                "personalized_search_beta",
+                "personalized_search_beta",  # Enabled 2 weeks ago
                 "enhanced_product_sorting"
             ],
-            historical_incidents=[
-                {
-                    "incident_id": "HIST_FF_001",
-                    "date": "2024-08-12",
-                    "feature_flag": "advanced_filtering_v2",
-                    "geographic_impact": "us-west",
-                    "symptom_pattern": "memory_leak_in_recommendation_service",
-                    "resolution": "feature_flag_rollback"
-                }
-            ]
+            historical_incidents=[]
         )
 
         predictions = IncidentPredictions(
-            incident_type="feature_flag_regression",
-            severity="high",
-            root_cause="ml_recommendations_v4_regional_deployment_issue",
-            confidence=0.88,
+            incident_type="incident",  # Agents identify this
+            severity="medium",
+            root_cause="feature_flag_interaction_memory_leak",
+            confidence=0.78,
             recommended_actions=[
-                "rollback_ml_recommendations_v4_in_us_east",
-                "analyze_recommendation_service_logs",
-                "check_ml_model_inference_performance",
-                "investigate_regional_data_dependencies"
+                "disable_ml_recommendations_v4_for_personalized_search_users",
+                "analyze_memory_patterns_in_us_east",
+                "investigate_flag_interaction_logic",
+                "prepare_targeted_rollback"
             ],
             is_edge_case=True,
-            edge_case_type="novel_geographic_feature_correlation"
+            edge_case_type="novel_pattern_feature_correlation"
         )
 
         ground_truth = {
-            "root_cause": "ml_model_incompatibility_with_us_east_data_format",
-            "deployment_correlation": {
-                "feature_flag": "ml_recommendations_v4",
-                "deployment_time": "45_minutes_ago",
-                "affected_region": "us-east"
-            },
-            "novel_pattern": "geographic_clustering_with_ml_feature_flag",
-            "resolution": "feature_flag_config_fix_for_regional_data_format",
-            "learning": "ml_models_need_regional_data_format_validation"
+            "actual_label": "incident",  # Binary label
+            "actual_root_cause": "ml_recommendations_v4_memory_leak_when_combined_with_personalized_search",
+            "why_tricky": "Novel pattern - never seen this flag combination, affects only 2% of users",
+            "model_prediction": "incident",  # Correct label but...
+            "model_confidence": 0.68,  # Low confidence
+            "model_would_do": "Generic incident response, broad rollback affecting all users",
+            "agent_finding": "Memory leak ONLY for users with both ml_recommendations_v4 AND personalized_search_beta",
+            "agent_recommendation": "Targeted fix: disable ml_recommendations_v4 for 2% affected segment, keep for 98%",
+            "outcome": "Surgical fix affecting 2% vs broad rollback affecting 100% of users"
         }
 
         return SyntheticIncident(
@@ -342,105 +414,338 @@ class SyntheticIncidentGenerator:
             ground_truth=ground_truth
         )
 
-    def _generate_clear_case_incident(self, incident_type: str) -> SyntheticIncident:
-        """Generate a clear, straightforward incident case."""
-        incident_id = f"CLEAR_{incident_type.upper()}_{random.randint(1000, 9999)}"
+    # ========================================================================
+    # EDGE CASE 5: CASCADE EARLY DETECTION
+    # ========================================================================
+    def generate_edge_case_5_cascade_early_detection(self) -> SyntheticIncident:
+        """Edge Case 5: CASCADE EARLY DETECTION - Subtle cross-service pattern.
 
-        # Generate type-specific metrics
-        if incident_type == "database_performance":
-            metrics = IncidentMetrics(
-                cpu_usage=85.7,
-                memory_usage=78.2,
-                disk_io_ops=3500.5,
-                network_latency_ms=8.3,
-                response_time_ms=2850.1,
-                error_rate=0.08,
-                connection_pool_usage=95.2,
-                throughput_rps=320.1,
-                packet_loss_percent=0.005,
-                db_query_time_ms=1250.8
-            )
-            root_cause = "database_lock_contention"
-            actions = ["analyze_query_performance", "check_index_usage", "review_lock_waits"]
+        Model: 'normal' (82% confidence) - metrics within bounds
+        Reality: Early signs of cascade failure pattern (auth → API → DB)
+        Agent value: Detect multi-service correlation before cascade
+        """
+        incident_id = f"EDGE_5_CE_CS_{random.randint(1000, 9999)}"
 
-        elif incident_type == "network_latency":
-            metrics = IncidentMetrics(
-                cpu_usage=35.2,
-                memory_usage=52.1,
-                disk_io_ops=200.3,
-                network_latency_ms=285.7,
-                response_time_ms=1850.4,
-                error_rate=0.15,
-                connection_pool_usage=45.8,
-                throughput_rps=450.2,
-                packet_loss_percent=3.2,
-                db_query_time_ms=35.1
-            )
-            root_cause = "network_infrastructure_degradation"
-            actions = ["check_network_hardware", "analyze_routing", "contact_isp"]
+        # Metrics individually normal, pattern is key
+        metrics = IncidentMetrics(
+            cpu_usage=42.8,  # Normal
+            memory_usage=58.3,  # Normal
+            disk_io_ops=280.5,  # Normal
+            network_latency_ms=22.5,  # Slightly elevated
+            response_time_ms=285.7,  # Slightly elevated
+            error_rate=0.06,  # Slightly elevated
+            connection_pool_usage=52.3,  # Normal
+            throughput_rps=780.4,  # Slightly low
+            packet_loss_percent=0.012,  # Normal
+            db_query_time_ms=58.2  # Slightly elevated
+        )
 
-        elif incident_type == "memory_leak":
-            metrics = IncidentMetrics(
-                cpu_usage=68.5,
-                memory_usage=92.8,
-                disk_io_ops=180.5,
-                network_latency_ms=12.1,
-                response_time_ms=950.3,
-                error_rate=0.12,
-                connection_pool_usage=55.2,
-                throughput_rps=680.4,
-                packet_loss_percent=0.008,
-                db_query_time_ms=45.2
-            )
-            root_cause = "application_memory_leak"
-            actions = ["analyze_heap_dumps", "check_object_retention", "restart_service"]
+        context = IncidentContext(
+            timestamp=self._generate_timestamp(hours_back=1),
+            business_event="normal_operations",
+            recent_deployments=["auth-service-v3.2.0"],  # 3 hours ago
+            traffic_multiplier=0.95,  # Slightly declining
+            geographic_distribution={"us-east": 0.4, "us-west": 0.35, "eu": 0.25},
+            feature_flags=["enhanced_auth_validation"],
+            historical_incidents=[
+                {
+                    "incident_id": "HIST_CAS_001",
+                    "date": "2024-06-22",
+                    "pattern": "auth_slowdown_cascade",
+                    "services_affected": ["auth", "api-gateway", "database"],
+                    "outcome": "30min full outage"
+                }
+            ]
+        )
 
-        elif incident_type == "cpu_spike":
-            metrics = IncidentMetrics(
-                cpu_usage=98.5,
-                memory_usage=65.2,
-                disk_io_ops=250.8,
-                network_latency_ms=15.2,
-                response_time_ms=3200.1,
-                error_rate=0.25,
-                connection_pool_usage=85.7,
-                throughput_rps=150.3,
-                packet_loss_percent=0.012,
-                db_query_time_ms=55.8
-            )
-            root_cause = "cpu_intensive_process"
-            actions = ["identify_cpu_intensive_processes", "analyze_profiler_data", "optimize_algorithms"]
+        predictions = IncidentPredictions(
+            incident_type="incident",  # Agents identify early
+            severity="high",
+            root_cause="auth_service_slowdown_cascade_pattern",
+            confidence=0.79,
+            recommended_actions=[
+                "rollback_auth_service_v3.2.0_immediately",
+                "monitor_api_gateway_connection_pool",
+                "prepare_database_connection_scaling",
+                "alert_on_call_engineer"
+            ],
+            is_edge_case=True,
+            edge_case_type="cross_service_cascade_early_warning"
+        )
 
-        else:  # disk_io
+        ground_truth = {
+            "actual_label": "incident",  # Binary label
+            "actual_root_cause": "auth_service_validation_causing_connection_buildup",
+            "why_tricky": "Individual metrics normal, danger is in cross-service correlation pattern",
+            "model_prediction": "normal",  # Misses pattern
+            "model_confidence": 0.82,
+            "model_would_do": "No action, all metrics within acceptable ranges",
+            "agent_finding": "Auth latency +40ms → API connections +15% → DB query queue forming. Classic cascade pattern.",
+            "agent_recommendation": "Immediate auth-service rollback to prevent cascade failure",
+            "outcome": "Prevented full cascade failure, caught 45min before critical threshold"
+        }
+
+        return SyntheticIncident(
+            incident_id=incident_id,
+            metrics=metrics,
+            context=context,
+            predictions=predictions,
+            ground_truth=ground_truth
+        )
+
+    # ========================================================================
+    # NORMAL EXAMPLES (30% of dataset)
+    # ========================================================================
+    def _generate_normal_example(self) -> SyntheticIncident:
+        """Generate normal (non-incident) examples.
+
+        Examples: maintenance windows, load tests, gradual scaling, temp spikes
+        """
+        incident_id = f"NORMAL_{random.randint(1000, 9999)}"
+
+        normal_types = [
+            "scheduled_maintenance",
+            "load_test",
+            "gradual_scaling",
+            "temporary_spike",
+            "expected_high_traffic"
+        ]
+
+        normal_type = random.choice(normal_types)
+
+        if normal_type == "scheduled_maintenance":
             metrics = IncidentMetrics(
-                cpu_usage=45.8,
-                memory_usage=58.7,
-                disk_io_ops=8500.2,
-                network_latency_ms=10.5,
-                response_time_ms=2200.5,
-                error_rate=0.18,
-                connection_pool_usage=75.3,
-                throughput_rps=380.1,
-                packet_loss_percent=0.006,
-                db_query_time_ms=850.3
+                cpu_usage=random.uniform(20, 40),
+                memory_usage=random.uniform(45, 65),
+                disk_io_ops=random.uniform(150, 400),
+                network_latency_ms=random.uniform(8, 18),
+                response_time_ms=random.uniform(180, 280),
+                error_rate=random.uniform(0.02, 0.06),
+                connection_pool_usage=random.uniform(25, 50),
+                throughput_rps=random.uniform(700, 1100),
+                packet_loss_percent=random.uniform(0.005, 0.015),
+                db_query_time_ms=random.uniform(20, 60)
             )
-            root_cause = "disk_io_bottleneck"
-            actions = ["check_disk_utilization", "analyze_io_patterns", "consider_ssd_upgrade"]
+            business_event = "scheduled_database_maintenance"
+            root_cause = "planned_maintenance_window"
+
+        elif normal_type == "load_test":
+            metrics = IncidentMetrics(
+                cpu_usage=random.uniform(60, 85),
+                memory_usage=random.uniform(65, 85),
+                disk_io_ops=random.uniform(1500, 3000),
+                network_latency_ms=random.uniform(10, 20),
+                response_time_ms=random.uniform(300, 500),
+                error_rate=random.uniform(0.03, 0.08),
+                connection_pool_usage=random.uniform(60, 85),
+                throughput_rps=random.uniform(5000, 8000),
+                packet_loss_percent=random.uniform(0.008, 0.02),
+                db_query_time_ms=random.uniform(40, 80)
+            )
+            business_event = "performance_load_testing"
+            root_cause = "planned_load_test_execution"
+
+        elif normal_type == "gradual_scaling":
+            metrics = IncidentMetrics(
+                cpu_usage=random.uniform(50, 70),
+                memory_usage=random.uniform(55, 75),
+                disk_io_ops=random.uniform(500, 1000),
+                network_latency_ms=random.uniform(12, 22),
+                response_time_ms=random.uniform(250, 400),
+                error_rate=random.uniform(0.03, 0.07),
+                connection_pool_usage=random.uniform(50, 70),
+                throughput_rps=random.uniform(2000, 4000),
+                packet_loss_percent=random.uniform(0.008, 0.018),
+                db_query_time_ms=random.uniform(35, 70)
+            )
+            business_event = "gradual_traffic_increase"
+            root_cause = "expected_business_growth"
+
+        elif normal_type == "temporary_spike":
+            metrics = IncidentMetrics(
+                cpu_usage=random.uniform(65, 80),
+                memory_usage=random.uniform(60, 75),
+                disk_io_ops=random.uniform(800, 1500),
+                network_latency_ms=random.uniform(10, 18),
+                response_time_ms=random.uniform(280, 450),
+                error_rate=random.uniform(0.04, 0.08),
+                connection_pool_usage=random.uniform(55, 75),
+                throughput_rps=random.uniform(3000, 5000),
+                packet_loss_percent=random.uniform(0.009, 0.018),
+                db_query_time_ms=random.uniform(45, 75)
+            )
+            business_event = "promotional_campaign"
+            root_cause = "temporary_marketing_driven_traffic"
+
+        else:  # expected_high_traffic
+            metrics = IncidentMetrics(
+                cpu_usage=random.uniform(70, 85),
+                memory_usage=random.uniform(65, 80),
+                disk_io_ops=random.uniform(1200, 2500),
+                network_latency_ms=random.uniform(12, 20),
+                response_time_ms=random.uniform(350, 520),
+                error_rate=random.uniform(0.04, 0.09),
+                connection_pool_usage=random.uniform(65, 85),
+                throughput_rps=random.uniform(6000, 10000),
+                packet_loss_percent=random.uniform(0.01, 0.02),
+                db_query_time_ms=random.uniform(50, 85)
+            )
+            business_event = "seasonal_high_traffic_period"
+            root_cause = "expected_seasonal_traffic_pattern"
 
         context = IncidentContext(
             timestamp=self._generate_timestamp(hours_back=random.randint(1, 48)),
-            business_event="normal_operations",
-            recent_deployments=[f"{incident_type.replace('_', '-')}-service-v1.{random.randint(1,9)}.{random.randint(0,9)}"],
-            traffic_multiplier=random.uniform(0.8, 1.3),
+            business_event=business_event,
+            recent_deployments=[],
+            traffic_multiplier=random.uniform(1.2, 3.5),
             geographic_distribution={"us-east": 0.4, "us-west": 0.35, "eu": 0.25},
-            feature_flags=[f"optimization_{random.randint(1,5)}"],
+            feature_flags=[],
             historical_incidents=[]
         )
 
         predictions = IncidentPredictions(
-            incident_type=incident_type,
-            severity=random.choice(["medium", "high"]),
+            incident_type="normal",
+            severity="none",
             root_cause=root_cause,
+            confidence=random.uniform(0.80, 0.95),
+            recommended_actions=["continue_monitoring", "no_action_required"],
+            is_edge_case=False,
+            edge_case_type="none"
+        )
+
+        ground_truth = {
+            "actual_label": "normal",
+            "actual_root_cause": root_cause,
+            "is_expected_behavior": True
+        }
+
+        return SyntheticIncident(
+            incident_id=incident_id,
+            metrics=metrics,
+            context=context,
+            predictions=predictions,
+            ground_truth=ground_truth
+        )
+
+    # ========================================================================
+    # INCIDENT EXAMPLES (70% of dataset)
+    # ========================================================================
+    def _generate_incident_example(self) -> SyntheticIncident:
+        """Generate clear incident examples (non-edge cases)."""
+        incident_id = f"INCIDENT_{random.randint(1000, 9999)}"
+
+        incident_cause = random.choice(self.incident_root_causes)
+
+        if incident_cause == "database_performance_degradation":
+            metrics = IncidentMetrics(
+                cpu_usage=random.uniform(75, 90),
+                memory_usage=random.uniform(70, 85),
+                disk_io_ops=random.uniform(3000, 5000),
+                network_latency_ms=random.uniform(8, 15),
+                response_time_ms=random.uniform(2000, 3500),
+                error_rate=random.uniform(0.10, 0.25),
+                connection_pool_usage=random.uniform(85, 98),
+                throughput_rps=random.uniform(200, 450),
+                packet_loss_percent=random.uniform(0.005, 0.015),
+                db_query_time_ms=random.uniform(800, 1500)
+            )
+            severity = "high"
+            actions = ["analyze_slow_queries", "check_index_usage", "review_db_locks"]
+
+        elif incident_cause == "network_infrastructure_issue":
+            metrics = IncidentMetrics(
+                cpu_usage=random.uniform(30, 50),
+                memory_usage=random.uniform(45, 65),
+                disk_io_ops=random.uniform(150, 400),
+                network_latency_ms=random.uniform(200, 400),
+                response_time_ms=random.uniform(1500, 2800),
+                error_rate=random.uniform(0.15, 0.35),
+                connection_pool_usage=random.uniform(40, 65),
+                throughput_rps=random.uniform(300, 600),
+                packet_loss_percent=random.uniform(2.5, 5.0),
+                db_query_time_ms=random.uniform(30, 70)
+            )
+            severity = "critical"
+            actions = ["check_network_hardware", "analyze_routing_tables", "contact_isp"]
+
+        elif incident_cause == "memory_leak":
+            metrics = IncidentMetrics(
+                cpu_usage=random.uniform(55, 75),
+                memory_usage=random.uniform(88, 98),
+                disk_io_ops=random.uniform(180, 350),
+                network_latency_ms=random.uniform(10, 20),
+                response_time_ms=random.uniform(800, 1500),
+                error_rate=random.uniform(0.12, 0.28),
+                connection_pool_usage=random.uniform(50, 70),
+                throughput_rps=random.uniform(500, 800),
+                packet_loss_percent=random.uniform(0.008, 0.018),
+                db_query_time_ms=random.uniform(40, 80)
+            )
+            severity = "high"
+            actions = ["analyze_heap_dumps", "check_object_retention", "restart_service"]
+
+        elif incident_cause == "cpu_intensive_process":
+            metrics = IncidentMetrics(
+                cpu_usage=random.uniform(92, 99),
+                memory_usage=random.uniform(55, 75),
+                disk_io_ops=random.uniform(200, 500),
+                network_latency_ms=random.uniform(12, 22),
+                response_time_ms=random.uniform(2500, 4000),
+                error_rate=random.uniform(0.20, 0.40),
+                connection_pool_usage=random.uniform(75, 90),
+                throughput_rps=random.uniform(100, 300),
+                packet_loss_percent=random.uniform(0.01, 0.025),
+                db_query_time_ms=random.uniform(50, 100)
+            )
+            severity = "critical"
+            actions = ["identify_cpu_processes", "analyze_profiler_data", "kill_runaway_process"]
+
+        elif incident_cause == "disk_io_bottleneck":
+            metrics = IncidentMetrics(
+                cpu_usage=random.uniform(40, 60),
+                memory_usage=random.uniform(50, 70),
+                disk_io_ops=random.uniform(7000, 12000),
+                network_latency_ms=random.uniform(10, 18),
+                response_time_ms=random.uniform(1800, 3200),
+                error_rate=random.uniform(0.15, 0.30),
+                connection_pool_usage=random.uniform(65, 85),
+                throughput_rps=random.uniform(250, 500),
+                packet_loss_percent=random.uniform(0.008, 0.018),
+                db_query_time_ms=random.uniform(600, 1200)
+            )
+            severity = "high"
+            actions = ["check_disk_utilization", "analyze_io_patterns", "migrate_to_ssd"]
+
+        else:  # connection_pool_exhaustion
+            metrics = IncidentMetrics(
+                cpu_usage=random.uniform(50, 70),
+                memory_usage=random.uniform(60, 80),
+                disk_io_ops=random.uniform(400, 800),
+                network_latency_ms=random.uniform(15, 30),
+                response_time_ms=random.uniform(3000, 5000),
+                error_rate=random.uniform(0.25, 0.45),
+                connection_pool_usage=random.uniform(95, 100),
+                throughput_rps=random.uniform(150, 350),
+                packet_loss_percent=random.uniform(0.01, 0.025),
+                db_query_time_ms=random.uniform(80, 150)
+            )
+            severity = "critical"
+            actions = ["increase_pool_size", "check_connection_leaks", "restart_services"]
+
+        context = IncidentContext(
+            timestamp=self._generate_timestamp(hours_back=random.randint(1, 48)),
+            business_event="normal_operations",
+            recent_deployments=[f"service-v{random.randint(1,5)}.{random.randint(0,9)}.{random.randint(0,9)}"],
+            traffic_multiplier=random.uniform(0.9, 1.5),
+            geographic_distribution={"us-east": 0.4, "us-west": 0.35, "eu": 0.25},
+            feature_flags=[],
+            historical_incidents=[]
+        )
+
+        predictions = IncidentPredictions(
+            incident_type="incident",
+            severity=severity,
+            root_cause=incident_cause,
             confidence=random.uniform(0.85, 0.95),
             recommended_actions=actions,
             is_edge_case=False,
@@ -448,9 +753,9 @@ class SyntheticIncidentGenerator:
         )
 
         ground_truth = {
-            "incident_type": incident_type,
-            "clear_symptoms": True,
-            "resolution_straightforward": True
+            "actual_label": "incident",
+            "actual_root_cause": incident_cause,
+            "clear_symptoms": True
         }
 
         return SyntheticIncident(
@@ -461,59 +766,65 @@ class SyntheticIncidentGenerator:
             ground_truth=ground_truth
         )
 
+    # ========================================================================
+    # HELPER METHODS FOR EVALUATION SYSTEM
+    # ========================================================================
+    def generate_edge_case_incident(self) -> SyntheticIncident:
+        """Generate a random edge case incident for evaluation."""
+        edge_case_generators = [
+            self.generate_edge_case_1_false_positive_black_friday,
+            self.generate_edge_case_2_false_negative_memory_leak,
+            self.generate_edge_case_3_wrong_root_cause_db_network,
+            self.generate_edge_case_4_novel_pattern_feature_flag,
+            self.generate_edge_case_5_cascade_early_detection
+        ]
+        generator_func = random.choice(edge_case_generators)
+        return generator_func()
+
+    def generate_standard_incident(self) -> SyntheticIncident:
+        """Generate a random standard (non-edge case) incident for evaluation."""
+        # 50/50 split between incident and normal
+        if random.random() < 0.7:
+            return self._generate_incident_example()
+        else:
+            return self._generate_normal_example()
+
+    # ========================================================================
+    # TRAINING DATASET GENERATION
+    # ========================================================================
     def generate_training_dataset(self, n_samples: int = 1000) -> List[SyntheticIncident]:
-        """
-        Generate balanced training dataset.
+        """Generate balanced training dataset for binary classification.
 
         Args:
             n_samples: Total number of samples (default 1000)
 
         Returns:
-            List of synthetic incidents (70% clear cases, 30% edge cases)
+            List of synthetic incidents (70% incident, 30% normal)
         """
         incidents = []
 
-        # Calculate distribution
-        n_clear_cases = int(n_samples * 0.7)  # 70%
-        n_edge_cases = n_samples - n_clear_cases  # 30%
+        # Calculate distribution: 70% incident, 30% normal
+        n_incidents = int(n_samples * 0.7)
+        n_normal = n_samples - n_incidents
 
-        # Generate clear cases (distributed across incident types)
-        clear_cases_per_type = n_clear_cases // len(self.incident_types)
+        # Generate incident examples (70%)
+        for _ in range(n_incidents):
+            incidents.append(self._generate_incident_example())
 
-        for incident_type in self.incident_types:
-            for _ in range(clear_cases_per_type):
-                incidents.append(self._generate_clear_case_incident(incident_type))
-
-        # Generate remaining clear cases
-        remaining_clear = n_clear_cases - (clear_cases_per_type * len(self.incident_types))
-        for _ in range(remaining_clear):
-            incident_type = random.choice(self.incident_types)
-            incidents.append(self._generate_clear_case_incident(incident_type))
-
-        # Generate edge cases (distributed equally)
-        edge_cases_per_type = n_edge_cases // 3
-
-        # Edge case 1: DB symptoms but network root cause
-        for _ in range(edge_cases_per_type):
-            incidents.append(self.generate_edge_case_1_db_actually_network())
-
-        # Edge case 2: Black Friday false positive
-        for _ in range(edge_cases_per_type):
-            incidents.append(self.generate_edge_case_2_false_positive_black_friday())
-
-        # Edge case 3: Novel feature flag pattern
-        remaining_edge = n_edge_cases - (edge_cases_per_type * 2)
-        for _ in range(remaining_edge):
-            incidents.append(self.generate_edge_case_3_novel_feature_flag())
+        # Generate normal examples (30%)
+        for _ in range(n_normal):
+            incidents.append(self._generate_normal_example())
 
         # Shuffle the dataset
         random.shuffle(incidents)
 
         return incidents
 
+    # ========================================================================
+    # EDGE CASE JSON GENERATION
+    # ========================================================================
     def save_edge_cases_to_json(self, output_dir: str = "demo_data") -> None:
-        """
-        Save edge cases to JSON files for analysis.
+        """Save 5 edge cases to JSON files for Streamlit demo.
 
         Args:
             output_dir: Directory to save JSON files
@@ -521,74 +832,81 @@ class SyntheticIncidentGenerator:
         output_path = Path(output_dir)
         output_path.mkdir(exist_ok=True)
 
-        # Generate each edge case
-        edge_case_1 = self.generate_edge_case_1_db_actually_network()
-        edge_case_2 = self.generate_edge_case_2_false_positive_black_friday()
-        edge_case_3 = self.generate_edge_case_3_novel_feature_flag()
+        # Generate all 5 edge cases
+        edge_case_1 = self.generate_edge_case_1_false_positive_black_friday()
+        edge_case_2 = self.generate_edge_case_2_false_negative_memory_leak()
+        edge_case_3 = self.generate_edge_case_3_wrong_root_cause_db_network()
+        edge_case_4 = self.generate_edge_case_4_novel_pattern_feature_flag()
+        edge_case_5 = self.generate_edge_case_5_cascade_early_detection()
 
         # Save to JSON files
-        with open(output_path / "edge_case_1_db_network.json", "w") as f:
-            json.dump(asdict(edge_case_1), f, indent=2)
+        edge_cases = [
+            (edge_case_1, "edge_case_1_false_positive_black_friday.json"),
+            (edge_case_2, "edge_case_2_false_negative_memory_leak.json"),
+            (edge_case_3, "edge_case_3_wrong_root_cause_db_network.json"),
+            (edge_case_4, "edge_case_4_novel_pattern_feature_flag.json"),
+            (edge_case_5, "edge_case_5_cascade_early_detection.json")
+        ]
 
-        with open(output_path / "edge_case_2_black_friday.json", "w") as f:
-            json.dump(asdict(edge_case_2), f, indent=2)
+        for edge_case, filename in edge_cases:
+            filepath = output_path / filename
+            with open(filepath, "w") as f:
+                json.dump(asdict(edge_case), f, indent=2)
 
-        with open(output_path / "edge_case_3_feature_flag.json", "w") as f:
-            json.dump(asdict(edge_case_3), f, indent=2)
-
-        print(f"Edge cases saved to {output_path}/")
-        print("Files created:")
-        print("- edge_case_1_db_network.json")
-        print("- edge_case_2_black_friday.json")
-        print("- edge_case_3_feature_flag.json")
+        print(f"\n[SUCCESS] Edge cases saved to {output_path}/")
+        print(f"\nFiles created:")
+        for _, filename in edge_cases:
+            print(f"  - {filename}")
+        print(f"\nEdge Case Summary:")
+        print(f"  1. FALSE POSITIVE: Black Friday traffic (prevent $47K unnecessary scaling)")
+        print(f"  2. FALSE NEGATIVE: Memory leak (catch 2 hours before outage)")
+        print(f"  3. WRONG ROOT CAUSE: DB symptoms, network cause (prevent 45min wasted fix)")
+        print(f"  4. NOVEL PATTERN: Feature flag interaction (surgical fix for 2% vs 100%)")
+        print(f"  5. CASCADE EARLY DETECTION: Cross-service pattern (prevent full outage)")
 
 
 def main():
     """Main function for testing the generator."""
-    print("Synthetic Incident Generator")
-    print("=" * 40)
+    print("=" * 60)
+    print("BINARY CLASSIFICATION - Synthetic Incident Generator")
+    print("=" * 60)
 
     # Initialize generator
     generator = SyntheticIncidentGenerator(seed=42)
 
     # Generate and save edge cases
-    print("\nGenerating edge cases...")
+    print("\n[1/3] Generating 5 edge cases for demo...")
     generator.save_edge_cases_to_json()
 
     # Generate training dataset sample
-    print("\nGenerating training dataset sample (100 incidents)...")
+    print("\n[2/3] Generating training dataset sample (100 incidents)...")
     training_data = generator.generate_training_dataset(n_samples=100)
 
     # Analysis
+    incidents = [inc for inc in training_data if inc.ground_truth.get('actual_label') == 'incident']
+    normals = [inc for inc in training_data if inc.ground_truth.get('actual_label') == 'normal']
     edge_cases = [inc for inc in training_data if inc.predictions.is_edge_case]
-    clear_cases = [inc for inc in training_data if not inc.predictions.is_edge_case]
 
-    print(f"\nDataset Analysis:")
-    print(f"- Total incidents: {len(training_data)}")
-    print(f"- Clear cases: {len(clear_cases)} ({len(clear_cases)/len(training_data)*100:.1f}%)")
-    print(f"- Edge cases: {len(edge_cases)} ({len(edge_cases)/len(training_data)*100:.1f}%)")
+    print(f"\n[3/3] Dataset Analysis:")
+    print(f"  Total samples: {len(training_data)}")
+    print(f"  Incidents: {len(incidents)} ({len(incidents)/len(training_data)*100:.1f}%)")
+    print(f"  Normal: {len(normals)} ({len(normals)/len(training_data)*100:.1f}%)")
+    print(f"  Edge cases: {len(edge_cases)} ({len(edge_cases)/len(training_data)*100:.1f}%)")
 
-    # Incident type distribution
-    type_counts = {}
+    # Binary label distribution
+    binary_labels = {}
     for incident in training_data:
-        inc_type = incident.predictions.incident_type
-        type_counts[inc_type] = type_counts.get(inc_type, 0) + 1
+        label = incident.ground_truth.get('actual_label', 'unknown')
+        binary_labels[label] = binary_labels.get(label, 0) + 1
 
-    print(f"\nIncident Type Distribution:")
-    for inc_type, count in sorted(type_counts.items()):
-        print(f"- {inc_type}: {count}")
+    print(f"\nBinary Label Distribution:")
+    for label, count in sorted(binary_labels.items()):
+        print(f"  {label}: {count} ({count/len(training_data)*100:.1f}%)")
 
-    # Edge case type distribution
-    edge_type_counts = {}
-    for incident in edge_cases:
-        edge_type = incident.predictions.edge_case_type
-        edge_type_counts[edge_type] = edge_type_counts.get(edge_type, 0) + 1
-
-    print(f"\nEdge Case Type Distribution:")
-    for edge_type, count in sorted(edge_type_counts.items()):
-        print(f"- {edge_type}: {count}")
-
-    print("\nGeneration complete!")
+    print(f"\n{'=' * 60}")
+    print("[SUCCESS] Generation complete!")
+    print("[SUCCESS] Ready for binary classification training")
+    print("=" * 60)
 
 
 if __name__ == "__main__":

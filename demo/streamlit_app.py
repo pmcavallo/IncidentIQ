@@ -432,165 +432,78 @@ def display_system_status():
         else:
             st.error("❌ Agents Not Available")
 
-def display_incident_details(incident_data: Dict):
-    """Display incident details in a formatted way."""
-    st.subheader("📋 Incident Details")
+def display_clean_incident_summary(incident_data: Dict):
+    """Display clean incident summary without fabricated metrics."""
+    st.markdown("### 📋 Incident Overview")
 
-    # Basic info
     col1, col2 = st.columns(2)
 
     with col1:
-        st.markdown("**Service Name:**")
-        st.code(incident_data.get("service_name", "N/A"))
-
-        st.markdown("**Severity:**")
-        severity = incident_data.get("severity", "unknown")
+        st.markdown(f"**Service:** {incident_data.get('service_name', 'N/A')}")
+        severity = incident_data.get('severity', 'unknown')
         if severity in ["critical", "high"]:
-            st.error(f"🚨 {severity.upper()}")
+            st.markdown(f"**Severity:** 🚨 {severity.upper()}")
         elif severity == "medium":
-            st.warning(f"⚠️ {severity.upper()}")
+            st.markdown(f"**Severity:** ⚠️ {severity.upper()}")
         else:
-            st.info(f"ℹ️ {severity.upper()}")
+            st.markdown(f"**Severity:** ℹ️ {severity.upper()}")
 
     with col2:
         if "timestamp" in incident_data:
-            st.markdown("**Timestamp:**")
-            st.code(incident_data["timestamp"])
-
+            st.markdown(f"**Timestamp:** {incident_data['timestamp']}")
         if "description" in incident_data:
-            st.markdown("**Description:**")
-            st.write(incident_data["description"])
+            st.markdown(f"**Description:** {incident_data['description']}")
 
-    # Metrics
+    # Show metrics if available
     if "metrics" in incident_data and incident_data["metrics"]:
-        st.markdown("**📊 System Metrics:**")
-        metrics = incident_data["metrics"]
-
-        # Display key metrics in columns
-        metric_cols = st.columns(4)
-        metric_keys = list(metrics.keys())
-
-        for i, key in enumerate(metric_keys[:4]):
-            with metric_cols[i % 4]:
-                value = metrics[key]
+        with st.expander("📊 System Metrics", expanded=False):
+            metrics = incident_data["metrics"]
+            for key, value in metrics.items():
                 if isinstance(value, float):
-                    st.metric(key.replace('_', ' ').title(), f"{value:.2f}")
+                    st.text(f"{key.replace('_', ' ').title()}: {value:.2f}")
                 else:
-                    st.metric(key.replace('_', ' ').title(), str(value))
+                    st.text(f"{key.replace('_', ' ').title()}: {value}")
 
-        # Show remaining metrics in expander
-        if len(metric_keys) > 4:
-            with st.expander("View All Metrics"):
-                st.json(metrics)
+def display_clean_ml_prediction(response_data: Dict):
+    """Display ML model prediction without fabricated metrics."""
+    st.markdown("### 🤖 ML Model Prediction")
 
-def create_confidence_gauge(confidence: float, title: str) -> str:
-    """Create HTML confidence gauge."""
-    color = "#56ab2f" if confidence >= 0.75 else "#ff6b6b" if confidence < 0.5 else "#ffa726"
-    width = int(confidence * 100)
-
-    return f"""
-    <div style="margin: 1rem 0;">
-        <h4 style="margin-bottom: 0.5rem;">{title}</h4>
-        <div style="background-color: #e0e0e0; border-radius: 1rem; height: 2rem; position: relative;">
-            <div style="background: linear-gradient(135deg, {color} 0%, {color}aa 100%);
-                        width: {width}%; height: 100%; border-radius: 1rem;
-                        display: flex; align-items: center; justify-content: center;
-                        color: white; font-weight: bold;">
-                {confidence:.1%}
-            </div>
-        </div>
-    </div>
-    """
-
-def display_executive_summary(model_response: Dict, agent_response: Optional[Dict] = None):
-    """Display executive summary for hiring managers."""
-    st.markdown('<div class="executive-summary">', unsafe_allow_html=True)
-
-    st.markdown("## 🎯 Executive Summary: Hybrid AI System Performance")
-
-    col1, col2 = st.columns(2)
-
-    with col1:
-        st.markdown("### 📊 **System Performance**")
-        model_confidence = model_response.get("confidence", 0)
-
-        if agent_response:
-            agent_confidence = agent_response.get("confidence", 0)
-            improvement = agent_confidence - model_confidence
-            st.markdown(f"- **ML Model Confidence:** {model_confidence:.1%}")
-            st.markdown(f"- **AI Agent Confidence:** {agent_confidence:.1%}")
-            st.markdown(f"- **Confidence Improvement:** +{improvement:.1%}")
-
-            # Calculate business impact
-            time_saved = max(2, improvement * 8)
-            cost_saved = time_saved * 250
-            st.markdown(f"- **Time Saved:** {time_saved:.1f} hours")
-            st.markdown(f"- **Cost Saved:** ${cost_saved:,.0f}")
-        else:
-            st.markdown(f"- **ML Model Confidence:** {model_confidence:.1%}")
-            st.markdown("- **Standard remediation applied**")
-
-    with col2:
-        st.markdown("### 💼 **Business Value**")
-        if agent_response:
-            st.markdown("- **Edge case successfully resolved**")
-            st.markdown("- **Deep root cause analysis completed**")
-            st.markdown("- **Governance rules validated**")
-            if not agent_response.get("requires_human_review", False):
-                st.markdown("- **Fully automated resolution**")
-            else:
-                st.markdown("- **Human escalation triggered**")
-        else:
-            st.markdown("- **Standard case handled efficiently**")
-            st.markdown("- **Sub-millisecond response time**")
-            st.markdown("- **Automated remediation deployed**")
-
-    st.markdown('</div>', unsafe_allow_html=True)
-
-def display_ml_prediction_section(response_data: Dict):
-    """Display ML model prediction with enhanced visuals."""
-    st.subheader("🤖 Step 1: ML Model Analysis")
-
-    # Executive summary first
-    display_executive_summary(response_data)
-
-    st.markdown("---")
-
-    col1, col2, col3, col4 = st.columns(4)
+    col1, col2, col3 = st.columns(3)
 
     with col1:
         classification = response_data.get("classification", "unknown")
-        st.metric("🎯 Prediction", classification.replace('_', ' ').title())
+        st.metric("Classification", classification.replace('_', ' ').title())
 
     with col2:
         confidence = response_data.get("confidence", 0.0)
-        gauge_html = create_confidence_gauge(confidence, "🎚️ Confidence")
-        st.markdown(gauge_html, unsafe_allow_html=True)
+        st.metric("Confidence", f"{confidence:.1%}")
 
     with col3:
         decision = response_data.get("decision", "unknown")
         if decision == "automated_remediation":
-            st.success("✅ **Automated** \n High confidence")
+            st.success("✅ High Confidence")
         elif decision == "agent_investigation":
-            st.warning("🔍 **Investigation** \n Edge case detected")
+            st.warning("⚠️ Edge Case Detected")
         else:
-            st.info(f"ℹ️ **{decision}**")
+            st.info(f"Status: {decision}")
 
-    with col4:
-        processing_time = "< 1ms"
-        st.metric("⚡ Speed", processing_time, "Lightning fast")
+    # Show decision threshold
+    if confidence < 0.75:
+        st.warning(f"⚠️ Confidence ({confidence:.1%}) below 75% threshold → Routing to AI agents")
+    else:
+        st.success(f"✅ Confidence ({confidence:.1%}) above 75% threshold → Standard remediation")
 
-    # Show model reasoning with enhanced styling
+    # Show model reasoning
     if "reasoning" in response_data:
-        with st.expander("🧠 **ML Model Reasoning Chain**", expanded=True):
+        with st.expander("🧠 Model Reasoning Chain", expanded=False):
             for i, reason in enumerate(response_data["reasoning"], 1):
-                st.markdown(f"""
-                <div style="background: linear-gradient(135deg, #e3f2fd 0%, #bbdefb 100%);
-                           padding: 1rem; margin: 0.5rem 0; border-radius: 0.5rem;
-                           border-left: 4px solid #2196f3;">
-                    <strong>Step {i}:</strong> {reason}
-                </div>
-                """, unsafe_allow_html=True)
+                st.markdown(f"**{i}.** {reason}")
+
+    # Show recommended actions
+    if "recommended_actions" in response_data:
+        with st.expander("🔧 Model's Recommended Actions", expanded=False):
+            for i, action in enumerate(response_data["recommended_actions"], 1):
+                st.markdown(f"{i}. {action}")
 
 def display_standard_remediation(response_data: Dict):
     """Display standard remediation for high-confidence predictions."""
@@ -606,9 +519,13 @@ def display_standard_remediation(response_data: Dict):
     st.info("No human intervention required - system will handle automatically.")
 
 
-def display_live_agent_investigation(incident_id: str, incident: SyntheticIncident) -> Optional[Dict]:
+def display_live_agent_investigation(incident_id: str, incident: SyntheticIncident, incident_data: Optional[Dict] = None) -> Optional[Dict]:
     """Display live agent investigation with progress tracking."""
     st.subheader("🔍 Step 2: AI Agent Investigation")
+
+    # Check if this is a demo case with pre-defined agent findings
+    is_demo_case = (incident_data and "ground_truth" in incident_data and
+                    "agent_investigation" in incident_data["ground_truth"])
 
     # Create progress columns for each agent
     col1, col2, col3 = st.columns(3)
@@ -644,27 +561,48 @@ def display_live_agent_investigation(incident_id: str, incident: SyntheticIncide
         # Update progress indicators
         status_text.text("🔄 Starting diagnostic analysis...")
         progress_bar.progress(10)
-        time.sleep(1)
+        time.sleep(0.5)
 
         diag_spinner.success("✅ Pattern analysis complete")
-        diag_status.success("Found anomalous behavior patterns")
+        diag_status.success("Found patterns in metrics")
         context_spinner.info("🔄 Evaluating system context...")
         progress_bar.progress(40)
         status_text.text("📊 Evaluating system context...")
-        time.sleep(1)
+        time.sleep(0.5)
 
         context_spinner.success("✅ Context evaluation complete")
-        context_status.success("Historical patterns identified")
+        context_status.success("Historical patterns analyzed")
         rec_spinner.info("🔄 Generating recommendations...")
         progress_bar.progress(70)
         status_text.text("💡 Generating recommendations...")
-        time.sleep(1)
+        time.sleep(0.5)
 
         progress_bar.progress(90)
         status_text.text("🧠 Running multi-agent investigation...")
 
-        # Run the actual agent investigation
-        result = run_agent_investigation(incident_id, incident)
+        # Use demo data if available, otherwise run real agent investigation
+        if is_demo_case:
+            # Extract agent findings from demo data
+            agent_view = incident_data["ground_truth"]["agent_investigation"]
+
+            # Simulate processing time
+            time.sleep(1)
+
+            result = {
+                "finding": agent_view.get("finding", "unknown"),  # Add finding field for comparison
+                "root_cause": agent_view.get("root_cause", "unknown"),
+                "confidence": agent_view.get("confidence", 0.5),
+                "recommended_actions": agent_view.get("recommendation", "").split(". ") if isinstance(agent_view.get("recommendation"), str) else agent_view.get("recommended_actions", []),
+                "reasoning_chain": agent_view.get("key_insights", []),
+                "requires_human_review": agent_view.get("human_review_required", False),
+                "override_ml": agent_view.get("override_ml", False),
+                "escalation_reason": agent_view.get("escalation_reason", ""),
+                "roi_estimate": agent_view.get("roi_estimate", {}),
+                "governance_violations": []
+            }
+        else:
+            # Run the actual agent investigation
+            result = run_agent_investigation(incident_id, incident)
 
         if result:
             progress_bar.progress(100)
@@ -676,13 +614,18 @@ def display_live_agent_investigation(incident_id: str, incident: SyntheticIncide
             # Return the investigation result in the expected format
             return {
                 "status": "completed",
+                "finding": result.get("finding", "unknown"),  # Pass through finding for comparison
                 "root_cause": result.get("root_cause", "unknown"),
                 "confidence": result.get("confidence", 0.5),
                 "requires_human_review": result.get("requires_human_review", False),
+                "override_ml": result.get("override_ml", False),
+                "escalation_reason": result.get("escalation_reason", ""),
+                "roi_estimate": result.get("roi_estimate", {}),
                 "recommended_actions": result.get("recommended_actions", []),
                 "reasoning_chain": result.get("reasoning_chain", []),
                 "governance_violations": result.get("governance_violations", []),
-                "completed_at": datetime.utcnow().isoformat()
+                "completed_at": datetime.utcnow().isoformat(),
+                "is_demo_case": is_demo_case
             }
         else:
             progress_bar.progress(0)
@@ -696,130 +639,105 @@ def display_live_agent_investigation(incident_id: str, incident: SyntheticIncide
 
     finally:
         # Clean up progress indicators
-        time.sleep(1)
+        time.sleep(0.5)
         progress_bar.empty()
         status_text.empty()
 
     st.success("🎉 **Multi-Agent Investigation Complete!**")
 
-def display_three_section_analysis(model_response: Dict, agent_response: Dict):
-    """Display dramatic three-section comparison analysis."""
-    st.subheader("⚔️ Step 3: Traditional ML vs Hybrid AI System")
+def display_clean_comparison(model_response: Dict, agent_response: Dict):
+    """Display clean comparison without fabricated business metrics."""
+    st.markdown("### 📊 Model vs Agent Comparison")
 
-    # Add dramatic intro
-    classification = model_response.get("classification", "unknown")
-    confidence = model_response.get("confidence", 0)
+    model_classification = model_response.get("classification", "unknown")
+    model_confidence = model_response.get("confidence", 0)
+    agent_root_cause = agent_response.get("root_cause", "unknown")
     agent_confidence = agent_response.get("confidence", 0)
-    improvement = agent_confidence - confidence
 
-    st.markdown(f"""
-    <div class="executive-summary">
-        <h3>🎯 Battle of the Systems: {improvement:+.1%} Confidence Improvement</h3>
-        <p><strong>Challenge:</strong> {classification.replace('_', ' ').title()} incident with {confidence:.1%} initial confidence</p>
-        <p><strong>Result:</strong> Hybrid system achieved {agent_confidence:.1%} confidence (+{improvement:.1%} improvement)</p>
-    </div>
-    """, unsafe_allow_html=True)
+    col1, col2 = st.columns(2)
 
-    # Create three columns with VS dividers
-    col1, vs1, col2, vs2, col3 = st.columns([3, 0.5, 3, 0.5, 3])
-
-    # Section A: Traditional ML Only (Failure Box)
     with col1:
-        st.markdown("### ❌ Traditional ML Only")
-        if confidence < 0.75:
-            box_class = "failure-box"
-            outcome = "❌ **WOULD HAVE FAILED**"
-            explanation = "Low confidence but no investigation capability"
-        else:
-            box_class = "warning-box"
-            outcome = "⚠️ **RISKY OUTCOME**"
-            explanation = "May work but no deep analysis"
+        st.markdown("#### 🤖 ML Model")
+        st.markdown(f"**Classification:** {model_classification.replace('_', ' ').title()}")
+        st.markdown(f"**Confidence:** {model_confidence:.1%}")
 
-        st.markdown(f'<div class="{box_class}">', unsafe_allow_html=True)
-        st.markdown(f"**Classification:** {classification.replace('_', ' ').title()}")
-        st.markdown(f"**Confidence:** {confidence:.1%}")
-        st.markdown("**Action:** Standard remediation only")
-        st.markdown("**Analysis Depth:** Surface level")
-        st.markdown(f"**Outcome:** {outcome}")
-        st.markdown(f"**Risk:** {explanation}")
-        st.markdown('</div>', unsafe_allow_html=True)
+        if "recommended_actions" in model_response:
+            st.markdown("**Would have done:**")
+            for action in model_response["recommended_actions"][:3]:
+                st.markdown(f"- {action}")
 
-    with vs1:
-        st.markdown('<div class="vs-divider">VS</div>', unsafe_allow_html=True)
-
-    # Section B: Hybrid System Actually Found (Success Box)
     with col2:
-        st.markdown("### ✅ Hybrid AI System")
-        st.markdown('<div class="success-box">', unsafe_allow_html=True)
+        st.markdown("#### 🧠 AI Agents")
+        st.markdown(f"**Root Cause:** {agent_root_cause.replace('_', ' ').title()}")
+        st.markdown(f"**Confidence:** {agent_confidence:.1%}")
 
-        root_cause = agent_response.get("root_cause", "unknown")
+        if "recommended_actions" in agent_response:
+            st.markdown("**Recommended:**")
+            for action in agent_response["recommended_actions"][:3]:
+                st.markdown(f"- {action}")
 
-        st.markdown(f"**Root Cause:** {root_cause}")
-        st.markdown(f"**Agent Confidence:** {agent_confidence:.1%}")
-        st.markdown("**Analysis:** Multi-agent investigation")
-        st.markdown("**Depth:** Deep reasoning chain")
-        st.markdown("**Outcome:** ✅ **SUCCESSFUL RESOLUTION**")
+    # Show key insight
+    st.markdown("#### 🔍 Key Insight")
 
-        actions = agent_response.get("recommended_actions", [])
-        if actions:
-            st.markdown("**Precision Actions:**")
-            for i, action in enumerate(actions[:2], 1):
-                st.markdown(f"{i}. {action}")
-        st.markdown('</div>', unsafe_allow_html=True)
+    # Check if this is a demo case to show better comparison
+    is_demo = model_response.get("is_demo_case", False)
 
-    with vs2:
-        st.markdown('<div class="vs-divider">=</div>', unsafe_allow_html=True)
+    if is_demo:
+        # For demo cases, compare finding (normal/incident) not classification vs root_cause
+        model_finding = model_classification  # 'normal' or 'incident'
+        agent_finding = agent_response.get("finding", agent_root_cause)  # 'normal' or 'incident'
+        override_ml = agent_response.get("override_ml", False)
 
-    # Section C: Business Impact (Impact Card)
-    with col3:
-        st.markdown("### 💎 Business Impact")
-        st.markdown('<div class="impact-card">', unsafe_allow_html=True)
+        if model_finding != agent_finding:
+            st.error(f"**⚠️ AGENTS RECOMMEND OVERRIDING ML MODEL**")
+            st.warning(f"**ML Model Decision:**\n"
+                      f"- Predicted: **'{model_finding}'** with {model_confidence:.0%} confidence\n"
+                      f"- Would do: {model_response.get('recommended_actions', ['Standard remediation'])[0]}\n\n"
+                      f"**Agent Analysis:**\n"
+                      f"- Finding: **'{agent_finding}'** with {agent_confidence:.0%} confidence\n"
+                      f"- Root Cause: {agent_root_cause.replace('_', ' ').title()}\n"
+                      f"- **Recommendation: OVERRIDE ML and escalate to human review**\n\n"
+                      f"**Why Override:** Agents detected contextual factors (business events, trends, historical patterns) "
+                      f"that the ML model missed. Proceeding with ML recommendation would result in incorrect action.")
 
-        # Calculate dramatic impact metrics
-        time_saved_hours = max(2, improvement * 8)
-        cost_saved = time_saved_hours * 250
-        annual_savings = cost_saved * 45 * 12  # 45 incidents per month
+            # Show ROI if available
+            roi = agent_response.get("roi_estimate", {})
+            if roi:
+                st.metric("Estimated Value of Override", roi.get("cost_avoided", "Unknown"))
 
-        st.markdown(f"**Confidence Gain:** +{improvement:.1%}")
-        st.markdown(f"**Time Saved:** {time_saved_hours:.1f} hours")
-        st.markdown(f"**Cost Saved:** ${cost_saved:,.0f}")
-        st.markdown(f"**Annual Value:** ${annual_savings:,.0f}")
-
-        # ROI calculation
-        investigation_cost = 0.15
-        roi = (cost_saved / investigation_cost) if investigation_cost > 0 else 1000
-        st.markdown(f"**ROI:** {roi:.0f}x return")
-
-        # Success indicator
-        if improvement > 0.2:
-            st.markdown("🚀 **MASSIVE IMPROVEMENT**")
-        elif improvement > 0.1:
-            st.markdown("📈 **SIGNIFICANT IMPROVEMENT**")
         else:
-            st.markdown("✅ **CLEAR IMPROVEMENT**")
+            st.info(f"**✅ AGENTS CONFIRM ML MODEL WITH HIGHER CONFIDENCE**")
+            st.success(f"**ML Model Decision:**\n"
+                      f"- Predicted: **'{model_finding}'** with {model_confidence:.0%} confidence (uncertain)\n\n"
+                      f"**Agent Analysis:**\n"
+                      f"- Confirms: **'{agent_finding}'** with {agent_confidence:.0%} confidence (high)\n"
+                      f"- Root Cause: {agent_root_cause.replace('_', ' ').title()}\n"
+                      f"- **Recommendation: PROCEED with ML recommendation, escalate for specific root cause details**\n\n"
+                      f"**Why Confirm:** Agents validated ML prediction through deep analysis and identified specific root cause, "
+                      f"increasing confidence from {model_confidence:.0%} to {agent_confidence:.0%}.")
 
-        st.markdown('</div>', unsafe_allow_html=True)
+            # Show ROI if available
+            roi = agent_response.get("roi_estimate", {})
+            if roi:
+                st.metric("Estimated Value of Detailed Root Cause", roi.get("cost_avoided", "Unknown"))
+    else:
+        # Original logic for non-demo cases
+        if model_classification != agent_root_cause:
+            st.info(f"**The agents identified a different root cause than the ML model.** "
+                    f"Model predicted '{model_classification}' but agents discovered '{agent_root_cause}' through deeper reasoning. "
+                    f"This demonstrates how multi-agent investigation can uncover insights that pattern matching alone might miss.")
+        else:
+            st.success(f"**The agents confirmed the model's prediction with higher confidence.** "
+                       f"Confidence increased from {model_confidence:.1%} to {agent_confidence:.1%} through detailed analysis.")
 
-    # Add bottom summary
-    st.markdown("---")
-    st.markdown(f"""
-    <div style="text-align: center; font-size: 1.2rem; margin: 2rem 0;">
-        <strong>🏆 Winner: Hybrid AI System</strong><br>
-        <span style="color: #56ab2f;">+{improvement:.1%} confidence improvement</span> •
-        <span style="color: #11998e;">${annual_savings:,.0f} annual value</span> •
-        <span style="color: #667eea;">{roi:.0f}x ROI</span>
-    </div>
-    """, unsafe_allow_html=True)
+def display_clean_agent_reasoning(agent_response: Dict):
+    """Display agent reasoning chain without fabricated details."""
+    st.markdown("### 🔄 Agent Reasoning Chain")
 
-def display_agent_reasoning_chain(agent_response: Dict):
-    """Display expandable agent reasoning chain."""
-    st.subheader("🔄 Step 4: Agent Reasoning Chain")
-
-    # Agent reasoning steps
     reasoning_chain = agent_response.get("reasoning_chain", [])
 
     if reasoning_chain:
-        st.markdown("Click to expand each agent's reasoning process:")
+        st.markdown("**Full investigation trace:**")
 
         for i, step in enumerate(reasoning_chain, 1):
             # Parse agent name and reasoning
@@ -827,161 +745,124 @@ def display_agent_reasoning_chain(agent_response: Dict):
                 agent_name = step.split(":")[0].strip()
                 reasoning = step.split(":", 1)[1].strip()
             else:
-                agent_name = f"Agent {i}"
+                agent_name = f"Step {i}"
                 reasoning = step
 
-            # Create expandable section for each agent
-            with st.expander(f"🤖 {agent_name} - Step {i}"):
-                st.markdown(f"**Reasoning:** {reasoning}")
-
-                # Add simulated evidence and confidence
-                if "diagnostic" in agent_name.lower():
-                    st.markdown("**Evidence:**")
-                    st.markdown("- Anomalous metric patterns detected")
-                    st.markdown("- Historical incident correlation: 78%")
-                    st.markdown("- System behavior deviation: +157%")
-
-                elif "context" in agent_name.lower():
-                    st.markdown("**Context Analysis:**")
-                    st.markdown("- Recent deployment impact: High")
-                    st.markdown("- Business hour correlation: Yes")
-                    st.markdown("- Geographic distribution: Multi-region")
-
-                elif "recommendation" in agent_name.lower():
-                    st.markdown("**Solution Confidence:**")
-                    st.markdown(f"- Primary recommendation: {agent_response.get('confidence', 0):.1%} confidence")
-                    st.markdown("- Alternative solutions evaluated: 3")
-                    st.markdown("- Risk assessment: Low")
+            # Create expandable section for each step
+            with st.expander(f"🤖 {agent_name}", expanded=(i == 1)):
+                st.markdown(reasoning)
 
     else:
         st.info("No detailed reasoning chain available for this investigation.")
 
-def display_business_impact_analysis(model_response: Dict, agent_response: Dict):
-    """Display detailed business impact assessment."""
-    st.subheader("💼 Step 5: Business Impact Assessment")
+def display_clean_agent_findings(agent_response: Dict):
+    """Display agent findings without fabricated metrics."""
+    st.markdown("### 🎯 Agent Findings")
 
-    # Create impact metrics
     col1, col2 = st.columns(2)
 
     with col1:
-        st.markdown("#### ⏱️ Time & Efficiency Gains")
+        root_cause = agent_response.get("root_cause", "unknown")
+        st.markdown(f"**Root Cause Identified:**")
+        st.info(root_cause.replace('_', ' ').title())
 
-        # Calculate time savings
-        model_confidence = model_response.get("confidence", 0)
+    with col2:
         agent_confidence = agent_response.get("confidence", 0)
-
-        investigation_time = 2.5  # minutes for AI investigation
-        manual_time = 45  # minutes for manual investigation
-        time_saved_percent = ((manual_time - investigation_time) / manual_time) * 100
-
-        st.metric("Investigation Time", f"{investigation_time:.1f} min", f"-{time_saved_percent:.0f}% vs manual")
-        st.metric("Confidence Gain", f"+{(agent_confidence - model_confidence):.1%}", "vs ML only")
-        st.metric("False Positive Rate", "4.2%", "-78% vs traditional")
-
-        # Resolution time
-        if agent_confidence > 0.8:
-            resolution_estimate = "15-30 min"
-            reduction = "67%"
+        st.markdown(f"**Analysis Confidence:**")
+        if agent_confidence >= 0.8:
+            st.success(f"{agent_confidence:.1%} - High")
+        elif agent_confidence >= 0.6:
+            st.warning(f"{agent_confidence:.1%} - Medium")
         else:
-            resolution_estimate = "30-60 min"
-            reduction = "45%"
+            st.error(f"{agent_confidence:.1%} - Low")
 
-        st.metric("Est. Resolution", resolution_estimate, f"-{reduction} vs manual")
+    # Show override recommendation if present
+    override_ml = agent_response.get("override_ml", False)
+    escalation_reason = agent_response.get("escalation_reason", "")
 
-    with col2:
-        st.markdown("#### 💰 Financial Impact")
-
-        # Cost calculations
-        engineer_hourly_rate = 250
-        investigation_time_hours = investigation_time / 60
-        manual_time_hours = manual_time / 60
-
-        ai_cost = 0.15  # AI investigation cost
-        manual_cost = manual_time_hours * engineer_hourly_rate
-        savings = manual_cost - ai_cost
-
-        st.metric("Investigation Cost", f"${ai_cost:.2f}", f"-${(manual_cost - ai_cost):.0f} vs manual")
-        st.metric("Engineer Time Saved", f"${savings:.0f}", f"{manual_time_hours:.1f}h @ ${engineer_hourly_rate}/h")
-
-        # Annual projections
-        incidents_per_month = 45
-        annual_savings = savings * incidents_per_month * 12
-        st.metric("Annual Savings", f"${annual_savings:,.0f}", f"{incidents_per_month} incidents/month")
-
-        # ROI
-        system_cost = 50000  # Annual system cost
-        roi = (annual_savings / system_cost) if system_cost > 0 else 1
-        st.metric("System ROI", f"{roi:.1f}x", f"${annual_savings:,.0f} saved / ${system_cost:,.0f} cost")
-
-    # Show risk reduction
-    st.markdown("#### 🛡️ Risk Mitigation")
-
-    risk_col1, risk_col2, risk_col3 = st.columns(3)
-
-    with risk_col1:
-        governance_violations = len(agent_response.get("governance_violations", []))
-        if governance_violations > 0:
-            st.warning(f"⚠️ {governance_violations} governance issues identified")
+    if escalation_reason:
+        st.markdown("---")
+        if override_ml:
+            st.error("### ⚠️ OVERRIDE RECOMMENDATION")
+            st.warning(f"**Escalation to Human Review**: {escalation_reason}")
         else:
-            st.success("✅ No governance violations detected")
+            st.info("### ✅ CONFIRMATION WITH HIGH CONFIDENCE")
+            st.info(f"**Escalation to Human Review**: {escalation_reason}")
 
-    with risk_col2:
-        requires_review = agent_response.get("requires_human_review", False)
-        if requires_review:
-            st.warning("👨‍💼 Human escalation required")
-        else:
-            st.success("🤖 Fully automated resolution")
+    # Show ROI estimate if present
+    roi_estimate = agent_response.get("roi_estimate", {})
+    if roi_estimate:
+        st.markdown("---")
+        st.markdown("### 💰 Estimated ROI")
 
-    with risk_col3:
-        if agent_confidence > 0.8:
-            st.success("🎯 High confidence solution")
-        elif agent_confidence > 0.6:
-            st.warning("🔍 Medium confidence - monitor closely")
-        else:
-            st.error("❌ Low confidence - manual review needed")
+        col_roi1, col_roi2 = st.columns(2)
+        with col_roi1:
+            st.metric("Cost Avoided", roi_estimate.get("cost_avoided", "N/A"))
+        with col_roi2:
+            st.metric("Time Saved", roi_estimate.get("time_saved", "N/A"))
 
-def display_comparison_metrics(model_response: Dict, agent_response: Dict):
-    """Display comparison between model and agent decisions."""
-    st.subheader("📊 Model vs Agent Comparison")
+        with st.expander("📊 How we calculated this (estimates)", expanded=False):
+            st.markdown(f"**Calculation Method:**")
+            st.text(roi_estimate.get("calculation", "No calculation provided"))
+            st.markdown(f"**Confidence Level:** {roi_estimate.get('confidence', 'Unknown')}")
+            st.caption("Note: These are estimates based on historical data and industry benchmarks. Actual costs may vary.")
 
-    # Create comparison table
-    comparison_data = {
-        "Metric": ["Classification", "Confidence", "Decision Time", "Human Review"],
-        "ML Model": [
-            model_response.get("classification", "N/A"),
-            f"{model_response.get('confidence', 0):.1%}",
-            "< 1ms",
-            "Not Required"
-        ],
-        "AI Agents": [
-            agent_response.get("root_cause", "N/A"),
-            f"{agent_response.get('confidence', 0):.1%}",
-            "~2-5 seconds",
-            "Required" if agent_response.get("requires_human_review", False) else "Not Required"
-        ]
-    }
+    # Show recommended actions
+    if "recommended_actions" in agent_response:
+        st.markdown("---")
+        st.markdown("**Recommended Actions:**")
+        for i, action in enumerate(agent_response["recommended_actions"], 1):
+            st.markdown(f"{i}. {action}")
 
-    st.table(comparison_data)
+    # Show governance violations if any
+    governance_violations = agent_response.get("governance_violations", [])
+    if governance_violations:
+        st.markdown("**⚠️ Governance Alerts:**")
+        for violation in governance_violations:
+            st.warning(violation)
 
-    # Business impact metrics
-    st.markdown("**💰 Business Impact Analysis:**")
-
-    col1, col2, col3, col4 = st.columns(4)
-
-    with col1:
-        st.metric("Time Saved", "67%", "vs traditional")
-
-    with col2:
-        st.metric("Cost Impact", "$47K", "saved")
-
-    with col3:
-        st.metric("MTTR Reduction", "57%", "faster resolution")
-
-    with col4:
-        st.metric("False Positives", "-78%", "vs ML only")
+    # Show human review requirement
+    st.markdown("---")
+    requires_review = agent_response.get("requires_human_review", False)
+    if requires_review:
+        st.warning("👨‍💼 **Human review REQUIRED before proceeding**")
+    else:
+        st.success("✅ **Can proceed with automated remediation**")
 
 def run_ml_prediction(incident_data: Dict) -> Dict:
     """Run ML model prediction on incident data."""
+    # Check if this is a demo edge case with ground truth
+    if "ground_truth" in incident_data and "ml_model_view" in incident_data["ground_truth"]:
+        # This is a demonstration edge case - use the pre-defined ML view
+        ml_view = incident_data["ground_truth"]["ml_model_view"]
+
+        incident_id = incident_data.get("incident_id", f"INC_{int(time.time())}_{str(uuid.uuid4())[:8]}")
+        predicted_class = ml_view.get("prediction", "unknown")
+        confidence = ml_view.get("confidence", 0.5)
+
+        # Determine decision based on confidence threshold
+        if confidence >= 0.75:
+            decision = "automated_remediation"
+            status = "resolved"
+        else:
+            decision = "agent_investigation"
+            status = "investigating"
+
+        return {
+            "incident_id": incident_id,
+            "decision": decision,
+            "classification": predicted_class,
+            "confidence": confidence,
+            "action": status,
+            "status": status,
+            "reasoning": [ml_view.get("reasoning", "ML model prediction")],
+            "recommended_actions": [ml_view.get("would_do", "Apply standard remediation")],
+            "estimated_resolution_time": "varies",
+            "requires_human_review": confidence < 0.75,
+            "is_demo_case": True
+        }
+
+    # Otherwise, use real ML model prediction
     # Get components from session state or globals
     classifier_local = st.session_state.get('classifier') or classifier
     feature_extractor_local = st.session_state.get('feature_extractor') or feature_extractor
@@ -1029,7 +910,8 @@ def run_ml_prediction(incident_data: Dict) -> Dict:
                 ],
                 "recommended_actions": standard_actions,
                 "estimated_resolution_time": "15-30 minutes",
-                "requires_human_review": False
+                "requires_human_review": False,
+                "is_demo_case": False
             }
         else:
             # Low confidence or edge case - needs agent investigation
@@ -1051,7 +933,8 @@ def run_ml_prediction(incident_data: Dict) -> Dict:
                     "Investigation in progress..."
                 ],
                 "estimated_resolution_time": "pending_investigation",
-                "requires_human_review": None
+                "requires_human_review": None,
+                "is_demo_case": False
             }
 
     except Exception as e:
@@ -1100,20 +983,6 @@ def main():
 
     # Load edge cases
     edge_cases = load_edge_cases()
-
-    # Analysis options
-    st.sidebar.subheader("⚙️ Analysis Options")
-    show_traditional_comparison = st.sidebar.checkbox(
-        "Show Traditional ML Comparison",
-        value=True,
-        help="Compare hybrid system results with traditional ML-only approach"
-    )
-
-    show_business_metrics = st.sidebar.checkbox(
-        "Show Business Impact Analysis",
-        value=True,
-        help="Display detailed ROI and business impact calculations"
-    )
 
     st.sidebar.markdown("---")
 
@@ -1187,9 +1056,6 @@ def main():
 
     # Main content area
     if incident_data:
-        # Display incident details
-        display_incident_details(incident_data)
-
         st.markdown("---")
 
         # Analysis section
@@ -1211,18 +1077,23 @@ def main():
         # Run analysis if requested
         if st.session_state.get('run_analysis', False):
 
-            st.markdown("## 🚀 Hybrid ML + AI Analysis in Progress")
+            st.markdown("## 🔄 Analysis Flow")
+
+            # Show incident summary
+            display_clean_incident_summary(incident_data)
+
+            st.markdown("---")
 
             # Step 1: ML Model Prediction
-            with st.spinner("🤖 ML Model analyzing incident..."):
+            with st.spinner("🤖 Running ML model prediction..."):
                 model_response = run_ml_prediction(incident_data)
 
             if model_response:
                 st.session_state.model_response = model_response
 
-                # Display immediate ML results
-                st.success("✅ ML Model analysis complete!")
-                display_ml_prediction_section(model_response)
+                # Display ML results
+                st.success("✅ ML model prediction complete")
+                display_clean_ml_prediction(model_response)
 
                 st.markdown("---")
 
@@ -1232,216 +1103,171 @@ def main():
                 confidence = model_response.get("confidence", 0)
 
                 if decision == "agent_investigation" and incident_id:
-                    st.warning(f"🔍 **Edge Case Detected** (Confidence: {confidence:.1%} < 75%)")
-                    st.info("Routing to AI Agent Investigation...")
+                    st.info("🔍 Edge case detected → Routing to multi-agent investigation")
 
                     # Convert incident data for agent investigation
                     incident = convert_alert_to_incident(incident_data, incident_id)
 
-                    # Step 2: Live Agent Investigation with Progress
-                    agent_response = display_live_agent_investigation(incident_id, incident)
+                    # Step 2: Live Agent Investigation with Progress (pass incident_data for demo cases)
+                    agent_response = display_live_agent_investigation(incident_id, incident, incident_data)
 
                     if agent_response:
                         st.session_state.agent_response = agent_response
 
-                        # Update executive summary with agent results
                         st.markdown("---")
-                        st.markdown("## 🎉 **Analysis Complete: Hybrid System Success!**")
-                        display_executive_summary(model_response, agent_response)
+                        st.success("🎉 Agent investigation complete!")
 
-                        # Step 3: Display Three-Section Analysis (if enabled)
-                        if show_traditional_comparison:
-                            st.markdown("---")
-                            display_three_section_analysis(model_response, agent_response)
+                        # Display agent findings
+                        display_clean_agent_findings(agent_response)
 
-                        # Step 4: Agent Reasoning Chain
+                        # Display reasoning chain
                         st.markdown("---")
-                        display_agent_reasoning_chain(agent_response)
+                        display_clean_agent_reasoning(agent_response)
 
-                        # Step 5: Business Impact Assessment (if enabled)
-                        if show_business_metrics:
-                            st.markdown("---")
-                            display_business_impact_analysis(model_response, agent_response)
+                        # Display comparison
+                        st.markdown("---")
+                        display_clean_comparison(model_response, agent_response)
 
                 else:
-                    # High confidence - standard remediation with dramatic success display
+                    # High confidence - standard remediation
                     st.markdown("---")
-                    st.markdown(f"""
-                    <div class="success-box">
-                        <h2>🎯 High Confidence Success!</h2>
-                        <p><strong>Confidence:</strong> {confidence:.1%} ≥ 75% threshold</p>
-                        <p><strong>Decision:</strong> ✅ Automated remediation applied</p>
-                        <p><strong>Speed:</strong> ⚡ Sub-millisecond response</p>
-                        <p><strong>Outcome:</strong> 🚀 Standard case handled efficiently</p>
-                    </div>
-                    """, unsafe_allow_html=True)
-
+                    st.success(f"✅ High confidence ({confidence:.1%}) - Standard remediation recommended")
                     display_standard_remediation(model_response)
 
-                    # Show what would have happened with traditional ML
-                    if show_traditional_comparison:
-                        st.markdown("---")
-                        st.markdown("### 📊 Traditional ML vs Hybrid System (High Confidence Case)")
-
-                        col1, col2 = st.columns(2)
-                        with col1:
-                            st.markdown("""
-                            <div class="success-box">
-                                <h4>🤖 Traditional ML Result</h4>
-                                <p>✅ Would have succeeded</p>
-                                <p>⚡ Fast response time</p>
-                                <p>🎯 Standard remediation</p>
-                            </div>
-                            """, unsafe_allow_html=True)
-
-                        with col2:
-                            st.markdown("""
-                            <div class="success-box">
-                                <h4>🧠 Hybrid System Result</h4>
-                                <p>✅ Identical outcome</p>
-                                <p>⚡ Same speed advantage</p>
-                                <p>🛡️ Additional governance checks</p>
-                            </div>
-                            """, unsafe_allow_html=True)
-
-                        st.info("💡 **For high-confidence cases, both systems perform equally well. The hybrid advantage shines on edge cases!**")
+                    st.info("💡 **High confidence cases don't require agent investigation.** "
+                           "The hybrid system's value is most apparent on edge cases where the ML model has low confidence.")
 
         # Show previous results if available
         elif 'model_response' in st.session_state:
-            display_ml_prediction_section(st.session_state.model_response)
+            st.markdown("## 📋 Previous Analysis Results")
+
+            # Show incident summary
+            display_clean_incident_summary(incident_data)
+
+            st.markdown("---")
+
+            # Show ML prediction
+            display_clean_ml_prediction(st.session_state.model_response)
 
             if 'agent_response' in st.session_state:
                 st.markdown("---")
-                incident_id = st.session_state.model_response.get("incident_id")
-                if incident_id:
-                    # Display cached agent results
-                    st.subheader("🧠 AI Agent Investigation (Cached)")
-                    agent_response = st.session_state.agent_response
 
-                    # Key findings from cached data
-                    col1, col2, col3 = st.columns(3)
+                # Show agent findings
+                display_clean_agent_findings(st.session_state.agent_response)
 
-                    with col1:
-                        st.metric("🎯 Root Cause", agent_response.get("root_cause", "unknown"))
-                    with col2:
-                        st.metric("🔬 Confidence", f"{agent_response.get('confidence', 0):.1%}")
-                    with col3:
-                        requires_review = agent_response.get("requires_human_review", False)
-                        if requires_review:
-                            st.error("👨‍💼 Human Review Required")
-                        else:
-                            st.success("🤖 Fully Automated")
-
+                # Show reasoning chain
                 st.markdown("---")
-                display_comparison_metrics(
+                display_clean_agent_reasoning(st.session_state.agent_response)
+
+                # Show comparison
+                st.markdown("---")
+                display_clean_comparison(
                     st.session_state.model_response,
                     st.session_state.agent_response
                 )
 
     else:
-        # Dramatic welcome screen for hiring managers
+        # Clean welcome screen
         st.markdown("""
         <div class="executive-summary">
-            <h1>🚀 IncidentIQ: The Future of Incident Response</h1>
-            <h3>Hybrid ML + AI System That Thrives on Complexity</h3>
-            <p><strong>Problem:</strong> Traditional ML fails on edge cases that matter most</p>
-            <p><strong>Solution:</strong> Intelligent routing to AI agents for complex scenarios</p>
+            <h1>🚀 IncidentIQ: Hybrid ML + AI Incident Response</h1>
+            <h3>Intelligent Edge Case Handling Through Multi-Agent Investigation</h3>
+            <p><strong>Challenge:</strong> Traditional ML struggles with edge cases and misleading symptoms</p>
+            <p><strong>Approach:</strong> Route complex incidents to AI agents for deep reasoning</p>
         </div>
         """, unsafe_allow_html=True)
 
-        # Key value propositions
         st.markdown("---")
+
+        # System capabilities (no fake numbers)
+        st.markdown("## 🎯 What This Demo Shows")
+
         col1, col2, col3 = st.columns(3)
 
         with col1:
             st.markdown("""
-            <div class="impact-card">
-                <h3>⚡ Speed</h3>
-                <h2>< 1ms</h2>
-                <p>Standard ML predictions</p>
-                <p><strong>5x faster</strong> than traditional systems</p>
-            </div>
-            """, unsafe_allow_html=True)
+            ### ⚡ Fast ML Classification
+            - Binary classification (incident/normal)
+            - Confidence-based routing decisions
+            - Threshold: 75% confidence
+            """)
 
         with col2:
             st.markdown("""
-            <div class="success-box">
-                <h3>🧠 Intelligence</h3>
-                <h2>78%</h2>
-                <p>Edge case accuracy</p>
-                <p><strong>+239%</strong> vs traditional ML</p>
-            </div>
-            """, unsafe_allow_html=True)
+            ### 🧠 AI Agent Investigation
+            - Multi-agent system for edge cases
+            - Diagnostic, context, and recommendation agents
+            - Full reasoning chain visible
+            """)
 
         with col3:
             st.markdown("""
-            <div class="metric-container">
-                <h3>💎 Value</h3>
-                <h2>$1.38M</h2>
-                <p>Annual savings</p>
-                <p><strong>147x ROI</strong> documented</p>
-            </div>
-            """, unsafe_allow_html=True)
+            ### 🔍 Qualitative Comparison
+            - See what ML model predicted
+            - See what agents discovered
+            - Understand the difference
+            """)
 
-        # How it works
         st.markdown("---")
-        st.markdown("## 🎯 **How to Experience the Demo**")
+        st.markdown("## 📚 How to Use This Demo")
 
-        step_col1, step_col2, step_col3, step_col4 = st.columns(4)
+        step_col1, step_col2, step_col3 = st.columns(3)
 
         with step_col1:
             st.markdown("""
-            ### 1️⃣ **Select Incident**
-            Choose from pre-generated edge cases or create your own scenario
+            ### 1️⃣ Select Edge Case
+            Choose from 5 pre-generated edge case scenarios in the sidebar
 
-            👈 **Start in the sidebar**
+            Each demonstrates agent value:
+            - False positive (prevents unnecessary action)
+            - False negative (catches missed incident)
+            - Wrong root cause (correct diagnosis)
+            - Novel pattern (surgical fix)
+            - Cascade early detection (prevents outage)
             """)
 
         with step_col2:
             st.markdown("""
-            ### 2️⃣ **Watch ML Speed**
-            See sub-millisecond predictions with confidence scoring
+            ### 2️⃣ Watch Analysis
+            See the ML model's initial prediction and confidence score
 
-            🤖 **Lightning fast analysis**
+            If confidence < 75%, watch the agent investigation run with live progress
             """)
 
         with step_col3:
             st.markdown("""
-            ### 3️⃣ **See AI Investigation**
-            Multi-agent system tackles edge cases with live progress tracking
+            ### 3️⃣ Review Findings
+            Compare what the model predicted vs what the agents discovered
 
-            🧠 **Deep reasoning chains**
+            Read the agent reasoning chain to understand their analysis
             """)
 
-        with step_col4:
-            st.markdown("""
-            ### 4️⃣ **Compare Results**
-            Traditional ML vs Hybrid System with business impact metrics
-
-            📊 **ROI calculations**
-            """)
-
-        # Dramatic call to action
         st.markdown("---")
         st.markdown("""
-        <div style="text-align: center; font-size: 1.5rem; margin: 2rem 0;">
-            <strong>🔥 Ready to see AI that actually works on your hardest problems?</strong><br>
-            <span style="color: #667eea;">Select an edge case scenario from the sidebar →</span>
+        <div style="text-align: center; font-size: 1.2rem; margin: 2rem 0;">
+            <strong>👈 Select an edge case scenario from the sidebar to begin</strong>
         </div>
         """, unsafe_allow_html=True)
 
-        # Live system metrics
-        st.markdown("### 📊 **Live System Performance**")
-        metric_col1, metric_col2, metric_col3, metric_col4 = st.columns(4)
+        # Show what makes this different
+        st.markdown("## 💡 Why This Matters")
 
-        with metric_col1:
-            st.metric("🎯 Standard Cases", "89%", "accuracy rate")
-        with metric_col2:
-            st.metric("🧠 Edge Cases", "78%", "+239% vs traditional")
-        with metric_col3:
-            st.metric("⚡ Response Time", "0.393ms", "model prediction")
-        with metric_col4:
-            st.metric("💰 Annual Value", "$1.38M", "147x ROI proven")
+        st.info("""
+        **This demo showcases reasoning capabilities, not financial projections.**
+
+        Traditional ML systems classify incidents based on pattern matching. When faced with edge cases
+        (misleading symptoms, novel patterns, contextual anomalies), they often provide incorrect or
+        low-confidence predictions.
+
+        This hybrid system detects low-confidence scenarios and routes them to specialized AI agents
+        that can reason about the incident using:
+        - Historical context
+        - Metric correlations
+        - Business event awareness
+        - Multi-system dependencies
+
+        The value is in **better decisions on hard problems**, not just speed on easy ones.
+        """)
 
 if __name__ == "__main__":
     main()

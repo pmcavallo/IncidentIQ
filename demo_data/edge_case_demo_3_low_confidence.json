@@ -1,0 +1,74 @@
+{
+  "incident_id": "DEMO_LC_AMBIGUOUS",
+  "description": "Ambiguous Promotional Traffic - Low Confidence Demo",
+  "scenario": "ML model uncertain (moderate metrics) but agents investigate to determine if promotional traffic spike OR service inefficiency",
+
+  "metrics": {
+    "cpu_usage": 65.0,
+    "memory_usage": 72.0,
+    "disk_io_ops": 1200.0,
+    "network_latency_ms": 55.0,
+    "response_time_ms": 450.0,
+    "error_rate": 0.06,
+    "connection_pool_usage": 68.0,
+    "throughput_rps": 650.0,
+    "packet_loss_percent": 0.8,
+    "db_query_time_ms": 180.0
+  },
+
+  "context": {
+    "timestamp": "2024-10-15T11:00:00",
+    "business_event": "promotional_event_starting",
+    "recent_deployments": ["recommendation-service-v3.1.0"],
+    "traffic_multiplier": 2.5,
+    "geographic_distribution": {
+      "us-east": 0.85,
+      "us-west": 0.10,
+      "eu": 0.05
+    },
+    "feature_flags": ["promo_recommendations_beta"],
+    "historical_incidents": []
+  },
+
+  "ground_truth": {
+    "actual_label": "incident",
+    "actual_root_cause": "recommendation_service_performance_regression_under_load",
+
+    "why_edge_case": "Ambiguous metrics - moderate across the board (CPU 65%, Memory 72%, Response 450ms). Could be normal promotional load OR service issue. Model uncertain. Agents must investigate context to differentiate.",
+
+    "ml_model_view": {
+      "prediction": "incident",
+      "confidence": 0.68,
+      "reasoning": "Mixed signals: Elevated CPU (65%), memory (72%), response time (450ms), error rate (6%). But promotional event expected. Uncertain if metrics proportional to 2.5x traffic or if service degraded.",
+      "would_do": "Low confidence - escalate to on-call team for human review. Cannot determine if promotional traffic is handled normally or if service is struggling."
+    },
+
+    "agent_investigation": {
+      "finding": "incident",
+      "confidence": 0.94,
+      "root_cause": "Recommendation service v3.1.0 has performance regression - inefficient under promotional load",
+      "key_insights": [
+        "Traffic is 2.5x baseline (650 RPS) - promotional spike is expected and normal",
+        "HOWEVER: Response time 450ms is 3x higher than it should be for 2.5x traffic",
+        "Historical baseline: 2x traffic typically yields 250ms response, not 450ms",
+        "Recent deployment: recommendation-service-v3.1.0 deployed 3 hours before promo",
+        "Promo_recommendations_beta feature flag active - likely inefficient query pattern",
+        "Error rate 6% also disproportionate - should be ~2% for this traffic level",
+        "CPU and memory elevated beyond expected load profile"
+      ],
+      "recommendation": "CONFIRM ML MODEL with higher confidence: IMMEDIATE ACTION REQUIRED. Rollback recommendation-service-v3.1.0. This is NOT just promotional traffic - service has performance regression. New version cannot handle expected promo load efficiently. Rollback before full promotional period begins.",
+      "human_review_required": true,
+      "override_ml": false,
+      "escalation_reason": "ML model predicted incident with low confidence (68%). Agent deep-dive analysis confirms incident with high confidence (94%) and identifies specific root cause: service performance regression, not just traffic spike. Recommend proceeding with targeted rollback.",
+      "roi_estimate": {
+        "cost_avoided": "$85,000",
+        "time_saved": "45 minutes faster resolution",
+        "calculation": "Without agent analysis: Would emergency scale infrastructure ($35K for 24h promotional period) AND still have degraded performance, losing ~$50K in abandoned carts (estimated 2% conversion loss on $2.5M promo revenue). Agent identified root cause (service regression) enabling targeted rollback. Time saved: 45min vs debugging 'why scaling didn't fix performance'.",
+        "confidence": "Medium - cost estimate based on typical promotional revenue ($2.5M/day) and conversion impact studies (1-2% loss per 100ms latency increase)"
+      },
+      "outcome": "Identified service regression vs normal traffic spike. Prevented prolonged degraded experience during high-value promotional event. Targeted rollback instead of emergency scaling."
+    },
+
+    "hybrid_system_value": "ML model correctly identified ambiguity. Agents performed deep context analysis: compared current metrics against historical promotional load patterns, correlated deployment timing, identified disproportionate degradation. Distinguished service problem from expected traffic increase."
+  }
+}

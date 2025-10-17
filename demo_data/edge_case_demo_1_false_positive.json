@@ -1,0 +1,77 @@
+{
+  "incident_id": "DEMO_FP_BLACK_FRIDAY",
+  "description": "Black Friday Traffic Spike - False Positive Demo",
+  "scenario": "ML model sees high resource usage and predicts incident, but it's actually expected Black Friday traffic",
+
+  "metrics": {
+    "cpu_usage": 85.0,
+    "memory_usage": 88.0,
+    "disk_io_ops": 3200.0,
+    "network_latency_ms": 45.0,
+    "response_time_ms": 650.0,
+    "error_rate": 0.08,
+    "connection_pool_usage": 82.0,
+    "throughput_rps": 12500.0,
+    "packet_loss_percent": 0.01,
+    "db_query_time_ms": 75.0
+  },
+
+  "context": {
+    "timestamp": "2024-11-29T14:30:00",
+    "business_event": "black_friday_peak_shopping",
+    "recent_deployments": [],
+    "traffic_multiplier": 15.0,
+    "geographic_distribution": {
+      "us-east": 0.45,
+      "us-west": 0.4,
+      "eu": 0.15
+    },
+    "feature_flags": ["black_friday_optimizations"],
+    "historical_incidents": [{
+      "event": "black_friday_2023",
+      "response_times": [620, 640, 655, 650],
+      "traffic_multiplier": 14.2,
+      "incident_count": 0
+    }]
+  },
+
+  "ground_truth": {
+    "actual_label": "normal",
+    "actual_root_cause": "expected_black_friday_traffic_15x_baseline",
+
+    "why_edge_case": "High CPU (85%), memory (88%), and response time (650ms) trigger incident patterns in ML model. Model trained on normal traffic patterns doesn't account for seasonal events.",
+
+    "ml_model_view": {
+      "prediction": "incident",
+      "confidence": 0.72,
+      "reasoning": "Multiple high-severity metrics: CPU 85%, Memory 88%, Response time 650ms (3.2x baseline), Error rate 8% (8x baseline)",
+      "would_do": "Immediate infrastructure scaling. Alert on-call team. Estimated cost: $47K for emergency capacity"
+    },
+
+    "agent_investigation": {
+      "finding": "normal",
+      "confidence": 0.96,
+      "root_cause": "Expected Black Friday traffic pattern",
+      "key_insights": [
+        "Throughput 12,500 RPS = 15x baseline matches Black Friday 2023 (14.2x)",
+        "Response time 650ms within historical Black Friday range (620-655ms)",
+        "Error rate 8% is elevated but proportional to 15x traffic increase",
+        "All metrics scale linearly with traffic - no system degradation",
+        "Business event 'black_friday_peak_shopping' confirms expected load"
+      ],
+      "recommendation": "OVERRIDE ML MODEL: Do NOT scale infrastructure. Continue monitoring. No intervention needed. Current capacity sufficient for expected load.",
+      "human_review_required": true,
+      "override_ml": true,
+      "escalation_reason": "ML model predicted incident with 72% confidence, but agent analysis (96% confidence) identifies this as normal Black Friday traffic. Recommend overriding ML to prevent unnecessary $47K scaling cost.",
+      "roi_estimate": {
+        "cost_avoided": "$47,000",
+        "time_saved": "2 hours",
+        "calculation": "Emergency cloud scaling during Black Friday would cost ~$47K (estimated 50 additional instances at $40/hour for 24 hours). Time saved: 2 hours of incident response team time (would have debugged 'why scaling didn't help').",
+        "confidence": "High - based on historical Black Friday 2023 data showing identical traffic patterns with zero incidents"
+      },
+      "outcome": "Prevented $47K unnecessary emergency scaling. Avoided false alarm to on-call team."
+    },
+
+    "hybrid_system_value": "Agents recognized business context (Black Friday) and historical patterns that ML model missed. Prevented expensive false positive response."
+  }
+}

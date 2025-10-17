@@ -1,4 +1,4 @@
-"""LightGBM-based incident classification model."""
+"""LightGBM-based binary incident classification model."""
 
 import pickle
 import json
@@ -20,17 +20,13 @@ from src.features import IncidentFeatureExtractor
 
 
 class IncidentClassifier:
-    """Fast LightGBM-based incident classifier for 6 incident types."""
+    """Fast LightGBM-based binary incident classifier.
 
-    INCIDENT_CLASSES = [
-        'database_performance',
-        'memory_leak',
-        'network_latency',
-        'disk_io',
-        'cpu_spike',
-        'unknown'
-    ]
+    Classifies as 'normal' (expected behavior) or 'incident' (requires action).
+    Agents determine specific root causes for edge cases.
+    """
 
+    INCIDENT_CLASSES = ['normal', 'incident']
     CONFIDENCE_THRESHOLD = 0.75
 
     def __init__(self):
@@ -45,7 +41,7 @@ class IncidentClassifier:
 
         Args:
             X_train: Training features (n_samples, n_features)
-            y_train: Training labels (n_samples,)
+            y_train: Training labels (n_samples,) - 'normal' or 'incident'
 
         Returns:
             Training metrics and information
@@ -62,10 +58,9 @@ class IncidentClassifier:
         train_data = lgb.Dataset(X_tr, label=y_tr)
         valid_data = lgb.Dataset(X_val, label=y_val, reference=train_data)
 
-        # LightGBM parameters
+        # LightGBM parameters for binary classification
         params = {
-            'objective': 'multiclass',
-            'num_class': len(self.INCIDENT_CLASSES),
+            'objective': 'binary',
             'boosting_type': 'gbdt',
             'num_leaves': 31,
             'learning_rate': 0.05,
@@ -73,7 +68,8 @@ class IncidentClassifier:
             'bagging_fraction': 0.8,
             'bagging_freq': 5,
             'verbose': -1,
-            'random_state': 42
+            'random_state': 42,
+            'metric': 'binary_logloss'
         }
 
         # Train model
@@ -89,7 +85,7 @@ class IncidentClassifier:
 
         # Calculate validation metrics
         val_predictions = self.model.predict(X_val)
-        val_pred_classes = np.argmax(val_predictions, axis=1)
+        val_pred_classes = (val_predictions >= 0.5).astype(int)
         val_accuracy = np.mean(val_pred_classes == y_val)
 
         return {
@@ -108,6 +104,10 @@ class IncidentClassifier:
 
         Returns:
             Tuple of (predicted_class, confidence, is_edge_case)
+
+        Edge case triggers:
+            1. Confidence < 75% threshold
+            2. Future: Trend analysis, contradictory signals, cross-service correlation
         """
         if not self.is_trained:
             raise ValueError("Model must be trained before prediction")
@@ -119,27 +119,46 @@ class IncidentClassifier:
         else:
             single_sample = False
 
-        # Get predictions
+        # Get predictions (LightGBM binary returns probability of positive class)
+        # Label encoder: ['incident'=0, 'normal'=1], so predictions = P(normal)
         predictions = self.model.predict(features)
 
         if single_sample:
             # Single prediction
-            probs = predictions[0]
-            predicted_class_idx = np.argmax(probs)
-            confidence = float(probs[predicted_class_idx])
-            predicted_class = self.label_encoder.inverse_transform([predicted_class_idx])[0]
+            prob_normal = float(predictions[0])  # LightGBM returns P(class=1) = P(normal)
+            prob_incident = 1.0 - prob_normal
 
-            # Determine if edge case
-            is_edge_case = (confidence < self.CONFIDENCE_THRESHOLD) or (predicted_class == 'unknown')
+            # Determine predicted class
+            if prob_incident >= 0.5:
+                predicted_class = 'incident'
+                confidence = prob_incident
+            else:
+                predicted_class = 'normal'
+                confidence = prob_normal
+
+            # Edge case detection
+            # Primary: Low confidence (< 75%)
+            is_edge_case = confidence < self.CONFIDENCE_THRESHOLD
+
+            # TODO: Add secondary triggers:
+            # - Trend analysis (gradual degradation over time)
+            # - Contradictory signals (high error rate but low resource usage)
+            # - Cross-service correlation patterns
 
             return predicted_class, confidence, is_edge_case
         else:
             # Batch predictions - return first sample for compatibility
-            probs = predictions[0]
-            predicted_class_idx = np.argmax(probs)
-            confidence = float(probs[predicted_class_idx])
-            predicted_class = self.label_encoder.inverse_transform([predicted_class_idx])[0]
-            is_edge_case = (confidence < self.CONFIDENCE_THRESHOLD) or (predicted_class == 'unknown')
+            prob_normal = float(predictions[0])  # LightGBM returns P(class=1) = P(normal)
+            prob_incident = 1.0 - prob_normal
+
+            if prob_incident >= 0.5:
+                predicted_class = 'incident'
+                confidence = prob_incident
+            else:
+                predicted_class = 'normal'
+                confidence = prob_normal
+
+            is_edge_case = confidence < self.CONFIDENCE_THRESHOLD
 
             return predicted_class, confidence, is_edge_case
 
@@ -155,16 +174,23 @@ class IncidentClassifier:
         if not self.is_trained:
             raise ValueError("Model must be trained before prediction")
 
-        # Get predictions
-        predictions = self.model.predict(features)
+        # Get predictions (LightGBM binary returns probability of positive class)
+        # Label encoder: ['incident'=0, 'normal'=1], so predictions = P(normal)
+        prob_normals = self.model.predict(features)
+        prob_incidents = 1.0 - prob_normals
 
-        # Extract results
-        predicted_class_indices = np.argmax(predictions, axis=1)
-        confidences = np.max(predictions, axis=1)
-        predicted_classes = self.label_encoder.inverse_transform(predicted_class_indices)
+        # Determine predicted classes
+        predicted_classes = np.where(prob_incidents >= 0.5, 'incident', 'normal')
+
+        # Calculate confidences
+        confidences = np.where(
+            prob_incidents >= 0.5,
+            prob_incidents,  # Confidence in 'incident'
+            1.0 - prob_incidents  # Confidence in 'normal'
+        )
 
         # Determine edge cases
-        is_edge_cases = (confidences < self.CONFIDENCE_THRESHOLD) | (predicted_classes == 'unknown')
+        is_edge_cases = confidences < self.CONFIDENCE_THRESHOLD
 
         return predicted_classes, confidences, is_edge_cases
 
@@ -193,7 +219,7 @@ class IncidentClassifier:
             'incident_classes': self.INCIDENT_CLASSES,
             'confidence_threshold': self.CONFIDENCE_THRESHOLD,
             'num_features': 15,
-            'model_type': 'lightgbm_multiclass'
+            'model_type': 'lightgbm_binary'
         }
 
         metadata_path = os.path.join(path, 'metadata.json')
@@ -227,39 +253,40 @@ class IncidentClassifier:
         self.is_trained = True
 
 
-def _generate_training_labels(incidents) -> np.ndarray:
-    """Generate training labels from ground truth data."""
+def _generate_binary_labels(incidents) -> np.ndarray:
+    """Generate binary training labels from ground truth data.
+
+    Returns:
+        Array of 'normal' or 'incident' labels
+    """
     labels = []
 
     for incident in incidents:
-        # Extract actual root cause from ground truth
-        actual_cause = incident.ground_truth.get('actual_root_cause', 'unknown')
+        # Check ground truth for actual label
+        actual_label = incident.ground_truth.get('actual_label', None)
 
-        # Map specific causes to general categories
-        if 'database' in actual_cause or 'db_' in actual_cause:
-            label = 'database_performance'
-        elif 'memory' in actual_cause or 'leak' in actual_cause:
-            label = 'memory_leak'
-        elif 'network' in actual_cause or 'latency' in actual_cause:
-            label = 'network_latency'
-        elif 'disk' in actual_cause or 'io' in actual_cause:
-            label = 'disk_io'
-        elif 'cpu' in actual_cause or 'spike' in actual_cause:
-            label = 'cpu_spike'
+        if actual_label:
+            # Use explicit label if provided
+            labels.append(actual_label)
         else:
-            label = 'unknown'
+            # Fallback: infer from root cause (for backwards compatibility)
+            actual_cause = incident.ground_truth.get('actual_root_cause', 'unknown')
 
-        labels.append(label)
+            # Map specific causes to binary labels
+            if actual_cause in ['expected_behavior', 'normal_operations', 'scheduled_maintenance']:
+                labels.append('normal')
+            else:
+                labels.append('incident')
 
     return np.array(labels)
 
 
 if __name__ == "__main__":
-    print("Training IncidentClassifier...")
+    print("Training Binary IncidentClassifier...")
     print("=" * 40)
 
     # Generate training data
-    print("Generating 1000 training incidents...")
+    print("Generating 1000 training incidents (70% incident, 30% normal)...")
     generator = SyntheticIncidentGenerator(seed=42)
     incidents = generator.generate_training_dataset(n_samples=1000)
 
@@ -268,18 +295,18 @@ if __name__ == "__main__":
     extractor = IncidentFeatureExtractor()
     features = extractor.extract_batch_features(incidents)
 
-    # Generate labels from ground truth
-    print("Generating labels from ground truth...")
-    labels = _generate_training_labels(incidents)
+    # Generate binary labels from ground truth
+    print("Generating binary labels from ground truth...")
+    labels = _generate_binary_labels(incidents)
 
     print(f"Feature shape: {features.shape}")
     print(f"Label distribution:")
     unique_labels, counts = np.unique(labels, return_counts=True)
     for label, count in zip(unique_labels, counts):
-        print(f"  {label}: {count}")
+        print(f"  {label}: {count} ({count/len(labels)*100:.1f}%)")
 
     # Train model
-    print("\nTraining LightGBM model...")
+    print("\nTraining LightGBM binary classifier...")
     classifier = IncidentClassifier()
     training_metrics = classifier.train(features, labels)
 

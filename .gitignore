@@ -180,8 +180,8 @@ logs/
 temp/
 *.log
 
-# Streamlit
-.streamlit/
+# Streamlit (keep config.toml, ignore secrets)
+.streamlit/secrets.toml
 
 # Data files (uncomment if you don't want to track data)
 # *.csv

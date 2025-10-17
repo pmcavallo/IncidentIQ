@@ -1,0 +1,57 @@
+{
+  "incident_id": "DEMO_CONTROL_NORMAL",
+  "description": "Healthy System - Control Case (No Agent Needed)",
+  "scenario": "ML model correctly identifies normal operations with high confidence. No investigation needed.",
+
+  "metrics": {
+    "cpu_usage": 28.0,
+    "memory_usage": 42.0,
+    "disk_io_ops": 220.0,
+    "network_latency_ms": 8.0,
+    "response_time_ms": 145.0,
+    "error_rate": 0.008,
+    "connection_pool_usage": 25.0,
+    "throughput_rps": 850.0,
+    "packet_loss_percent": 0.002,
+    "db_query_time_ms": 28.0
+  },
+
+  "context": {
+    "timestamp": "2024-10-15T09:00:00",
+    "business_event": "normal_operations",
+    "recent_deployments": [],
+    "traffic_multiplier": 1.0,
+    "geographic_distribution": {
+      "us-east": 0.4,
+      "us-west": 0.35,
+      "eu": 0.25
+    },
+    "feature_flags": [],
+    "historical_incidents": []
+  },
+
+  "ground_truth": {
+    "actual_label": "normal",
+    "actual_root_cause": "healthy_system_normal_operations",
+
+    "why_edge_case": "NOT an edge case - this is a control showing healthy system that doesn't need agent investigation",
+
+    "ml_model_view": {
+      "prediction": "normal",
+      "confidence": 0.96,
+      "reasoning": "All metrics healthy: CPU 28%, Memory 42%, Response time 145ms, Error rate 0.8%, Throughput normal at 850 RPS. No anomalies detected. System operating within expected parameters.",
+      "would_do": "No action required. Continue standard monitoring. System healthy."
+    },
+
+    "agent_investigation": {
+      "finding": "NOT TRIGGERED",
+      "confidence": null,
+      "root_cause": "Agent investigation not needed - ML model highly confident and correct",
+      "key_insights": [],
+      "recommendation": "Standard monitoring sufficient. High confidence (96%), all metrics normal, no intervention required.",
+      "outcome": "Efficient monitoring - no unnecessary investigation overhead. System continues normal operations."
+    },
+
+    "hybrid_system_value": "System correctly skips expensive agent investigation when ML model is confident and correct. Demonstrates cost-efficiency - agents only invoked when needed for edge cases, not for routine normal/incident classification."
+  }
+}

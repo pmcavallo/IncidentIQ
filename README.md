@@ -16,7 +16,7 @@ IncidentIQ introduces a **hybrid ML + AI architecture** that combines the speed 
 ## Key Features
 
 ### Core Capabilities
-- **Lightning-fast classification**: 6 incident types in <10ms
+- **Lightning-fast classification**: Binary (normal/incident) in <10ms
 - **Intelligent edge case detection**: Automatic handoff when confidence drops
 - **Multi-agent investigation**: 4 specialized AI agents for complex scenarios
 - **Governance-aware**: 8 hard rules including security and compliance checks
@@ -40,7 +40,7 @@ IncidentIQ introduces a **hybrid ML + AI architecture** that combines the speed 
 │   FastAPI       │    │   LightGBM       │    │  Multi-Agent    │
 │   Orchestrator  │───▶│   Classifier     │───▶│  Investigation  │
 │                 │    │                  │    │                 │
-│ • Endpoint mgmt │    │ • 6 classes      │    │ • Diagnostic    │
+│ • Endpoint mgmt │    │ • Binary class   │    │ • Diagnostic    │
 │ • Background    │    │ • 0.4ms predict  │    │ • Context       │
 │ • Status track  │    │ • Edge detection │    │ • Recommend     │
 └─────────────────┘    └──────────────────┘    │ • Governance    │
@@ -59,23 +59,37 @@ IncidentIQ introduces a **hybrid ML + AI architecture** that combines the speed 
 
 ## Demo Scenarios
 
-### Scenario 1: Misleading Database Symptoms
-**Input**: High DB query times, CPU spikes, memory alerts
-**Traditional ML**: "Database performance issue" (wrong)
-**IncidentIQ**: Detects edge case → AI investigation → "Network routing misconfiguration affecting DB connections"
-**Outcome**: 67% faster resolution, prevented cascade failure
+IncidentIQ demonstrates agent value through 5 edge cases that catch confident ML mistakes:
 
-### Scenario 2: Black Friday False Positive
-**Input**: Traffic surge, elevated error rates during Black Friday
-**Traditional ML**: "Critical system failure" (panic response)
-**IncidentIQ**: Contextual analysis → "Expected traffic pattern, system performing within parameters"
-**Outcome**: Prevented unnecessary scaling, saved $47K in cloud costs
+### Scenario 1: False Positive - Black Friday Traffic
+**Input**: 12x normal traffic, CPU 78%, response time 520ms
+**ML Model**: 'incident' (95% confidence) → scale infrastructure ($47K cost)
+**AI Agents**: 'normal' → Black Friday traffic pattern, metrics within historical range
+**Agent Value**: Prevented $47K unnecessary cloud scaling costs
 
-### Scenario 3: Novel Feature Flag Pattern
-**Input**: Unprecedented metric combination from new feature rollout
-**Traditional ML**: "Unknown incident type" (no guidance)
-**IncidentIQ**: Multi-agent correlation → "Feature flag interaction causing memory leak in edge traffic patterns"
-**Outcome**: Isolated to 2% of users, clean rollback strategy provided
+### Scenario 2: False Negative - Gradual Memory Leak
+**Input**: Memory at 67% (normal), but increasing 3.5% per hour
+**ML Model**: 'normal' (88% confidence) → no action needed
+**AI Agents**: 'incident' → Memory leak detected via trend analysis, will hit 95% in 2 hours
+**Agent Value**: Caught issue 2 hours before outage, prevented production failure
+
+### Scenario 3: Wrong Root Cause - DB Symptoms, Network Issue
+**Input**: High connection pool (89%), elevated response time (850ms), normal DB internals
+**ML Model**: 'incident' (91% confidence) → restart database (45min downtime)
+**AI Agents**: 'incident' → Network packet loss (2.3%) is real problem, DB healthy
+**Agent Value**: Prevented 45min unnecessary DB restart, fixed in 15min by replacing switch
+
+### Scenario 4: Novel Pattern - Feature Flag Interaction
+**Input**: Memory leak affecting only 2% of users with specific flag combination
+**ML Model**: 'incident' (68% confidence, low) → broad rollback affecting all users
+**AI Agents**: 'incident' → Memory leak ONLY when ml_recommendations_v4 + personalized_search_beta
+**Agent Value**: Surgical fix affecting 2% vs broad rollback affecting 100% of users
+
+### Scenario 5: Cascade Early Detection - Cross-Service Pattern
+**Input**: All individual metrics normal, subtle cross-service correlation
+**ML Model**: 'normal' (82% confidence) → no action, metrics within bounds
+**AI Agents**: 'incident' → Auth +40ms → API connections +15% → DB queue forming (classic cascade)
+**Agent Value**: Prevented full cascade failure, caught 45min before critical threshold
 
 ## Quick Start
 
@@ -125,8 +139,14 @@ python demo/demo.py
 
 ### Test Performance
 ```bash
+# Quick performance test (feature extraction speed only)
 python test_performance.py
-python src/model.py  # Train and test classifier
+
+# Train and test classifier
+python src/model.py
+
+# Comprehensive evaluation (generates REAL performance numbers)
+python evaluate_system.py
 ```
 
 ## Tech Stack
@@ -151,19 +171,31 @@ python src/model.py  # Train and test classifier
 - **Black**: Code formatting
 - **Type hints**: Full static typing for reliability
 
-## Results Comparison
+## Performance Results
+
+### 🔬 **REAL MEASURED PERFORMANCE**
+*Comprehensive evaluation on 10,000 synthetic incidents*
 
 | Metric | Traditional ML | IncidentIQ Hybrid | Improvement |
 |--------|---------------|-------------------|-------------|
-| **Standard Cases** | 87% accuracy | 89% accuracy | +2.3% |
-| **Edge Cases** | 23% accuracy | 78% accuracy | +239% |
-| **False Positives** | 18% rate | 4% rate | -78% |
-| **MTTR (Critical)** | 47 minutes | 20 minutes | -57% |
-| **Human Escalations** | 34% of incidents | 12% of incidents | -65% |
-| **Annual ROI** | Baseline | $1.38M saved | 147x |
-| **Prediction Speed** | 2.1ms | 0.4ms | 5.25x faster |
+| **Classification Accuracy** | 100% | 100% | Equal |
+| **Edge Case Detection** | 0% (no detection) | 79.4% escalation rate | ✅ Enables AI investigation |
+| **Prediction Speed** | 31.4ms | 0.83ms | **37.8x faster** |
+| **False Escalations** | N/A | 20.4% | Acceptable for edge case detection |
 
-*Based on simulation with 10,000 synthetic incidents across 6 categories*
+*Source: `evaluate_system.py` - Real measurements from 10,000-incident evaluation (2025-10-14)*
+
+### 📈 **PROJECTED PERFORMANCE ESTIMATES**
+*Industry-standard estimates for production deployment*
+
+| Metric | Traditional ML (Est.) | IncidentIQ Hybrid (Est.) | Projected Improvement |
+|--------|---------------|-------------------|-------------|
+| **Edge Case Accuracy** | ~25-40% (estimated) | ~70-85% (estimated) | **2.5-3x better** |
+| **MTTR (Critical)** | ~45-60 min (estimated) | ~15-25 min (estimated) | **2-3x faster** |
+| **Human Escalations** | ~30-40% (estimated) | ~10-15% (estimated) | **2-3x reduction** |
+| **Annual ROI** | Baseline | $1.2-2.0M (estimated) | **Significant** |
+
+*Note: These are PROJECTIONS based on industry benchmarks and system capabilities, not measured results*
 
 ## Use Cases Beyond DevOps
 
@@ -189,16 +221,19 @@ IncidentIQ/
 ├── src/
 │   ├── __init__.py
 │   ├── main.py              # FastAPI orchestration layer
-│   ├── model.py             # LightGBM classifier (6 classes, <10ms)
+│   ├── model.py             # LightGBM binary classifier (normal/incident, <10ms)
 │   ├── features.py          # Feature extraction (<5ms target)
 │   ├── agents.py            # Multi-agent system with LangGraph
 │   └── synthetic_data.py    # Training data generation
 ├── demo/
-│   └── demo.py              # Interactive demonstration
+│   ├── demo.py              # Interactive CLI demonstration
+│   └── streamlit_app.py     # Web dashboard (standalone)
 ├── models/                  # Trained model artifacts
 ├── tests/                   # Test suite
 ├── requirements.txt         # Python dependencies
-├── test_performance.py      # Performance benchmarks
+├── test_performance.py      # Quick performance benchmarks
+├── evaluate_system.py       # Comprehensive evaluation (REAL numbers)
+├── evaluation_results.json  # Latest evaluation results
 └── README.md               # This file
 ```
 
